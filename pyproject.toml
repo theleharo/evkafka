@@ -1,0 +1,51 @@
+[project]
+name = "evkafka"
+version = "0.0.1"
+authors = [
+  { name="Aleksey Katichev", email="theleharo@gmail.com" },
+]
+description = "EVKafka framework. Handle kafka events easy"
+readme = 'README.md'
+dependencies = [
+    "aiokafka>=0.8.1",
+]
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Unix",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/theleharo/evkafka"
+"Bug Tracker" = "https://github.com/theleharo/evkafka/issues"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["evkafka"]  # ["*"] by default
+
+[tool.ruff]
+select = [
+    "B",
+    "C",
+    "E",
+    "F",
+    "I",
+    "W",
+]
+ignore = ["E501"]
+
+[tool.mypy]
+disallow_untyped_defs = true
+disallow_untyped_decorators = true

@@ -1,0 +1,23 @@
+site_name: EVKafka
+
+theme:
+  name: material
+
+nav:
+  - Overview: 'index.md'
+  - Events: 'events.md'
+  - Endpoints: 'endpoint.md'
+  - Handlers: 'handlers.md'
+  - Consumers: 'consumers.md'
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+
+repo_url: https://github.com/theleharo/evkafka
+repo_name: theleharo/evkafka
