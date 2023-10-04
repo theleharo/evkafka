@@ -1,9 +1,12 @@
 # Handlers
 
-Internally every event source (a consumer instance) must be attached
+Internally an every event source (a consumer instance) must be attached
 to a corresponing `Handler` which routes events to their respective endpoints. 
-The `EVKafkaApp` allows to register endpoints to default handler however it may be more
-convenient to split handlers and an application entry point onto different files.
+In the case when a consumer configuration is supplied to the `EVKafkaApp` directly
+you can use the app instance to register endpoints to default handler.
+
+However, it may be more convenient to put handlers and an application 
+entry point into different files.
 
 In endpoints.py:
 
@@ -32,9 +35,13 @@ if __name__ == '__main__':
     app.run()
 ```
 
-Note that `Consumer`<->`Handler` link is defined explicitly by `.add_consumer()` call.
+Every handler should be added to the app alongside with a consumer configuration 
+explicitly by an `.add_consumer()` call.
+Please see the [Consumers](consumers.md) for further details. 
 
-It also worth mentioning that `Handler` has `include_handler()` method which
+## Combining handlers
+
+The `Handler` object has the `include_handler()` method which
 can be used to combine several handler instances into one:
 
 ```python
@@ -48,3 +55,4 @@ handler.include_handler(cart_handler)
 
 ```
 
+The new handler includes all endpoints from descending handlers.
