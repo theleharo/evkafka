@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from typing import Any
 
-from .exceptions import UndecodedMessageError
 from .state import State
 from .utils import load_json
 
@@ -41,14 +40,10 @@ class Request:
             self._headers = dict(self._context.message.headers)
         return self._headers
 
-    async def json(self) -> dict[Any, Any] | list[Any]:
+    @property
+    def json(self) -> dict[Any, Any]:
         if not hasattr(self, "_json"):
-            if isinstance(self._context.message.value, bytes):
-                self._json = load_json(self._context.message.value)
-            elif not isinstance(self._context.message.value, (dict, list)):
-                raise UndecodedMessageError("Message was not decoded")
-            else:
-                self._json = self._context.message.value
+            self._json = load_json(self._context.message.value)
         return self._json
 
     @property
@@ -60,3 +55,7 @@ class Request:
         if not hasattr(self, "_state"):
             self._state = State(self._context.state)
         return self._state
+
+    @property
+    def value(self) -> Any:
+        return self._context.message.value

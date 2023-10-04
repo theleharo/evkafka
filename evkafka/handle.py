@@ -1,9 +1,10 @@
 import inspect
 from dataclasses import dataclass
 from functools import wraps
-from typing import Any, Awaitable, Callable, Mapping, Type, cast, get_origin
+from typing import Any, Awaitable, Callable, Type, cast, get_origin
 
 from .context import Context, Request
+from .exceptions import UnsupportedValueError
 from .types import F
 from .utils import exec_endpoint
 
@@ -33,21 +34,22 @@ class Handle:
             endpoint: Callable[..., Any] = self.endpoint,
             endpoint_deps: EndpointDependencies = self.endpoint_dependencies,
         ) -> None:
-            sig: dict[str, Any] = {}
             type_ = cast(type, endpoint_deps.payload_param_type)
-            origin = getattr(type_, "__origin__", None)
 
-            value = await request.json()
-
-            assert isinstance(value, dict), "Unexpected message format"
-
-            if type_ is dict or origin and issubclass(origin, Mapping):
-                sig[endpoint_deps.payload_param_name] = value
+            if type_ is dict:
+                value: Any = request.json
             elif BaseModel and issubclass(type_, BaseModel):
-                sig[endpoint_deps.payload_param_name] = type_(**value)
+                value = type_(**request.json)
+            elif type_ is str:
+                value = request.value.decode()
+            elif type_ is bytes:
+                value = request.value
             else:
-                # should not be here
-                raise AssertionError("Unexpected typing")
+                raise UnsupportedValueError(
+                    "Cannot cast event to {type_.__name__} type"
+                )
+
+            sig = {endpoint_deps.payload_param_name: value}
 
             return await exec_endpoint(func=endpoint, values=sig)
 
@@ -87,11 +89,12 @@ def get_dependencies(endpoint: F) -> EndpointDependencies:
     if get_origin(param_type) is dict:
         param_type = dict
 
-    if param_type is not dict:
-        if BaseModel is None or not issubclass(param_type, BaseModel):
-            raise AssertionError(
-                f"Unsupported parameter type for argument {param_name}"
-            )
+    if param_type in [dict, str, bytes]:
+        pass
+    elif BaseModel and issubclass(param_type, BaseModel):
+        pass
+    else:
+        raise AssertionError(f"Unsupported parameter type for argument {param_name}")
 
     return EndpointDependencies(
         payload_param_name=param_name, payload_param_type=param_type

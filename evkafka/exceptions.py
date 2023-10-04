@@ -2,5 +2,5 @@ class EVKafkaError(Exception):
     pass
 
 
-class UndecodedMessageError(EVKafkaError):
+class UnsupportedValueError(EVKafkaError):
     pass
