@@ -1,11 +1,11 @@
-import asyncio
 import inspect
 from dataclasses import dataclass
 from functools import wraps
-from typing import Any, Awaitable, Callable, Mapping, Type, cast
+from typing import Any, Awaitable, Callable, Mapping, Type, cast, get_origin
 
 from .context import Context, Request
 from .types import F
+from .utils import exec_endpoint
 
 try:
     from pydantic import BaseModel  # type: ignore
@@ -23,28 +23,7 @@ class Handle:
     def __init__(self, event_name: str | None, endpoint: F) -> None:
         self.event_name = event_name
         self.endpoint = endpoint
-
-        sig = inspect.signature(endpoint)
-
-        annotations = {}
-        for param in sig.parameters.values():
-            annotations[param.name] = param.annotation
-
-        assert (
-            len(annotations) == 1
-        ), "Only one endpoint argument is supported at the moment"
-
-        param_name, param_type = annotations.popitem()
-
-        if param_type is inspect.Signature.empty:
-            raise RuntimeError(
-                f'Untyped parameter "{param_name}" for endpoint "{endpoint.__name__}"'
-            )
-
-        self.endpoint_dependencies = EndpointDependencies(
-            payload_param_name=param_name, payload_param_type=param_type
-        )
-
+        self.endpoint_dependencies = get_dependencies(endpoint)
         self.app = self.get_app()
 
     def get_app(self) -> Callable[..., Awaitable[None]]:
@@ -67,18 +46,12 @@ class Handle:
             elif BaseModel and issubclass(type_, BaseModel):
                 sig[endpoint_deps.payload_param_name] = type_(**value)
             else:
+                # should not be here
                 raise AssertionError("Unexpected typing")
 
-            return await self._exec_endpoint(func=endpoint, values=sig)
+            return await exec_endpoint(func=endpoint, values=sig)
 
         return app
-
-    @staticmethod
-    async def _exec_endpoint(func: Callable[..., Any], values: dict[str, Any]) -> Any:
-        if inspect.iscoroutinefunction(func):
-            return await func(**values)
-
-        return await asyncio.to_thread(func, **values)
 
     def match(self, context: Context) -> bool:
         if self.event_name is None:
@@ -92,3 +65,34 @@ class Handle:
 
         request = Request(context)
         await self.app(request)
+
+
+def get_dependencies(endpoint: F) -> EndpointDependencies:
+    sig = inspect.signature(endpoint)
+
+    annotations = {}
+    for param in sig.parameters.values():
+        annotations[param.name] = param.annotation
+
+    assert (
+        len(annotations) == 1
+    ), "Only one endpoint argument is supported at the moment"
+
+    param_name, param_type = annotations.popitem()
+
+    assert (
+        param_type is not inspect.Signature.empty
+    ), f'Untyped parameter "{param_name}" for endpoint "{endpoint.__name__}"'
+
+    if get_origin(param_type) is dict:
+        param_type = dict
+
+    if param_type is not dict:
+        if BaseModel is None or not issubclass(param_type, BaseModel):
+            raise AssertionError(
+                f"Unsupported parameter type for argument {param_name}"
+            )
+
+    return EndpointDependencies(
+        payload_param_name=param_name, payload_param_type=param_type
+    )
