@@ -12,7 +12,7 @@ from evkafka.context import ConsumerCtx, MessageCtx
 logger = logging.getLogger(__name__)
 
 
-class Consumer:
+class EVKafkaConsumer:
     def __init__(
         self,
         config: ConsumerConfig,
@@ -38,7 +38,7 @@ class Consumer:
         def shutdown_log_cb(future: Future[typing.Awaitable[None]]) -> None:
             if future.exception():
                 logger.exception(
-                    "Consumer has been unexpectedly stopped",
+                    "EVKafkaConsumer has been unexpectedly stopped",
                     exc_info=future.exception(),
                 )
 

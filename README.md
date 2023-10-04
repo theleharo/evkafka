@@ -24,6 +24,7 @@ if __name__ == "__main__":
     app.run()
 ```
 
+More details can be found in the [documentation](https://evkafka.readthedocs.io/)
 ## Usage
 
 The framework is in pre-alpha. There are a lot of things to do include docs.

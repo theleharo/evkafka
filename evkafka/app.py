@@ -8,7 +8,7 @@ import uuid
 from types import FrameType
 
 from .config import ConsumerConfig
-from .consumer import Consumer
+from .consumer import EVKafkaConsumer
 from .context import ConsumerCtx, Context, MessageCtx
 from .handler import Handler
 from .types import Wrapped
@@ -23,7 +23,7 @@ class EVKafkaApp:
         name: str | None = None,
     ) -> None:
         self._tasks: set[asyncio.Task[typing.Any]] = set()
-        self._consumers: set[Consumer] = set()
+        self._consumers: set[EVKafkaConsumer] = set()
         self.state: dict[str, typing.Any] = {}
         self.force_exit = False
         self.should_exit = False
@@ -83,7 +83,7 @@ class EVKafkaApp:
 
         # TODO ensure that every consumer has started otherwise need to stop gracefully
         for _name, config_items in self._consumer_configs.items():
-            consumer = Consumer(
+            consumer = EVKafkaConsumer(
                 config=config_items["config"],
                 messages_cb=config_items["messages_cb"],
             )

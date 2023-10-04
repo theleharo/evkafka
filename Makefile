@@ -1,14 +1,19 @@
 
 format:
-		ruff evkafka --fix
-		black evkafka
+		ruff evkafka tests --fix
+		black evkafka tests
 
-check:
-		ruff evkafka --fix
-		black evkafka --check
+lint:
+		ruff evkafka tests --fix
+		black evkafka tests --check
 		mypy evkafka
+
+test:
+		pytest ./
+
+check: format lint test
 
 docs:
 		mkdocs build
 
-.PHONY: format check docs
+.PHONY: format lint test check docs
