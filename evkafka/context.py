@@ -32,30 +32,30 @@ class Context:
 
 class Request:
     def __init__(self, context: Context) -> None:
-        self._context = context
+        self.context = context
 
     @property
     def headers(self) -> dict[str, bytes]:
         if not hasattr(self, "_headers"):
-            self._headers = dict(self._context.message.headers)
+            self._headers = dict(self.context.message.headers)
         return self._headers
 
     @property
     def json(self) -> dict[Any, Any]:
         if not hasattr(self, "_json"):
-            self._json = load_json(self._context.message.value)
+            self._json = load_json(self.context.message.value)
         return self._json
 
     @property
     def key(self) -> bytes | None:
-        return self._context.message.key
+        return self.context.message.key
 
     @property
     def state(self) -> State:
         if not hasattr(self, "_state"):
-            self._state = State(self._context.state)
+            self._state = State(self.context.state)
         return self._state
 
     @property
     def value(self) -> Any:
-        return self._context.message.value
+        return self.context.message.value

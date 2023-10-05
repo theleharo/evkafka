@@ -3,6 +3,7 @@ from typing import Dict
 import pytest
 
 from evkafka import handle
+from evkafka.context import Request
 from evkafka.handle import Handle, get_dependencies
 
 
@@ -42,11 +43,28 @@ def test_get_dependencies_payload_param_pyd_model(mocker):
     assert d.payload_param_type is B
 
 
+def test_get_dependencies_request_arg():
+    def ep(e: dict, r: Request):
+        pass
+
+    d = get_dependencies(ep)
+
+    assert d.request_param_name == "r"
+
+
 def test_get_dependencies_raises_for_extra_arg():
     def ep(e: dict, extra: dict):
         pass
 
-    with pytest.raises(AssertionError, match="Only one"):
+    with pytest.raises(AssertionError, match="Only one payload"):
+        get_dependencies(ep)
+
+
+def test_get_dependencies_raises_for_extra_req():
+    def ep(e: dict, r: Request, x: Request):
+        pass
+
+    with pytest.raises(AssertionError, match="Only one Request"):
         get_dependencies(ep)
 
 
@@ -66,6 +84,14 @@ def test_get_dependencies_raises_for_unsupported_type():
         get_dependencies(ep)
 
 
+def test_get_dependencies_raises_for_no_payload_param():
+    def ep(r: Request):
+        pass
+
+    with pytest.raises(AssertionError, match="At least"):
+        get_dependencies(ep)
+
+
 @pytest.mark.parametrize("typ,exp_val", [(str, "a"), (bytes, b"a"), (dict, {"a": "b"})])
 async def test_handle_simple_type(typ, exp_val, req):
     async def ep(e: typ):
@@ -73,6 +99,14 @@ async def test_handle_simple_type(typ, exp_val, req):
 
     h = Handle("ep", ep)
     assert await h.app(req) == exp_val
+
+
+async def test_handle_request_type(req):
+    async def ep(r: Request, e: str):
+        return r, e
+
+    h = Handle("ep", ep)
+    assert await h.app(req) == (req, "a")
 
 
 async def test_handle_pyd_type(mocker, req):

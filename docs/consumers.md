@@ -12,7 +12,7 @@ config = {
 The framework is built around [aiokafka](https://aiokafka.readthedocs.io/en/stable/). For full list of options 
 check the lib's [AIOKafkaConsumer documentation](https://aiokafka.readthedocs.io/en/stable/api.html#consumer-class).
 
-> Note. EVKafka consumer is currently able to work only in autocommit mode with
+> **Note:** EVKafka consumer is currently able to work only in autocommit mode with
 > at most once delivery semantic.
 
 

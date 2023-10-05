@@ -18,6 +18,7 @@ except ModuleNotFoundError:
 class EndpointDependencies:
     payload_param_name: str
     payload_param_type: Any
+    request_param_name: str | None
 
 
 class Handle:
@@ -51,6 +52,9 @@ class Handle:
 
             sig = {endpoint_deps.payload_param_name: value}
 
+            if endpoint_deps.request_param_name:
+                sig[endpoint_deps.request_param_name] = request
+
             return await exec_endpoint(func=endpoint, values=sig)
 
         return app
@@ -72,30 +76,43 @@ class Handle:
 def get_dependencies(endpoint: F) -> EndpointDependencies:
     sig = inspect.signature(endpoint)
 
+    payload_param_name = None
+    payload_param_type = None
+    request_param_name = None
+
     annotations = {}
     for param in sig.parameters.values():
         annotations[param.name] = param.annotation
 
-    assert (
-        len(annotations) == 1
-    ), "Only one endpoint argument is supported at the moment"
+    for param_name, param_type in annotations.items():
+        assert (
+            param_type is not inspect.Signature.empty
+        ), f'Untyped parameter "{param_name}" for endpoint "{endpoint.__name__}"'
 
-    param_name, param_type = annotations.popitem()
+        if get_origin(param_type) is dict:
+            param_type = dict
 
-    assert (
-        param_type is not inspect.Signature.empty
-    ), f'Untyped parameter "{param_name}" for endpoint "{endpoint.__name__}"'
+        if issubclass(param_type, Request):
+            assert request_param_name is None, "Only one Request parameter is expected"
+            request_param_name = param_name
+        else:
+            assert payload_param_name is None, "Only one payload parameter is expected"
+            if param_type in [dict, str, bytes]:
+                pass
+            elif BaseModel and issubclass(param_type, BaseModel):
+                pass
+            else:
+                raise AssertionError(
+                    f"Unsupported parameter type for argument {param_name}"
+                )
 
-    if get_origin(param_type) is dict:
-        param_type = dict
+            payload_param_name = param_name
+            payload_param_type = param_type
 
-    if param_type in [dict, str, bytes]:
-        pass
-    elif BaseModel and issubclass(param_type, BaseModel):
-        pass
-    else:
-        raise AssertionError(f"Unsupported parameter type for argument {param_name}")
+    assert payload_param_name, "At least one payload parameter is expected"
 
     return EndpointDependencies(
-        payload_param_name=param_name, payload_param_type=param_type
+        payload_param_name=payload_param_name,
+        payload_param_type=payload_param_type,
+        request_param_name=request_param_name,
     )

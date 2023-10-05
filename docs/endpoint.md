@@ -42,10 +42,22 @@ async def handle_event(event: Event) -> None:
     assert isinstance(event, Event)
 ```
 
-## Kafka message types
-
-A kafka message must be valid json if an endpoint expects `dict` or pydantic object. However
+> **Note:** Kafka message must be valid json if an endpoint expects `dict` or pydantic object. However,
 there is no such limitation if events are processed as raw `bytes`.
+
+
+## Endpoint extra
+
+You may also supply an additional argument to capture a `Request` object to obtain meta about
+current event:
+
+```python
+from evkafka import Request
+
+@app.event('Event')
+async def handle_event(event: dict, request: Request) -> None:
+    assert 'Some-Header' in request.headers
+```
 
 ## Handler function type
 
