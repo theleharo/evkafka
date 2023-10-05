@@ -12,6 +12,9 @@ config = {
 The framework is built around [aiokafka](https://aiokafka.readthedocs.io/en/stable/). For full list of options 
 check the lib's [AIOKafkaConsumer documentation](https://aiokafka.readthedocs.io/en/stable/api.html#consumer-class).
 
+> Note. EVKafka consumer is currently able to work only in autocommit mode with
+> at most once delivery semantic.
+
 
 ## Parallel consumers
 Sometimes you want to consume messages from different kafka instances, e.g. you're making 
@@ -30,14 +33,5 @@ app.run()
 ```
 
 Other possible scenarios may include a migration case when you need to consume events with the same type
-from old and new kafka cluster. In this case the same handler instance shall be passed to every consumer:
-
-```python
-app = EVkafkaApp()
-
-app.add_consumer(config, handler)
-app.add_consumer(new_config, handler)
-
-app.run()
-```
+from old and new kafka cluster. In this case the same handler instance shall be passed to every consumer.
 The framework creates an independent instance of a consumer for each `.add_consumer()` call. 
