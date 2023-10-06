@@ -35,7 +35,7 @@ class EVKafkaProducer:
 
         event_headers: dict[str, bytes] = {
             **headers,
-            "Message-Type": event_name.encode(),
+            "Event-Type": event_name.encode(),
         }
 
         return await self._producer.send(

@@ -14,7 +14,7 @@ You can define an endpoint for an every event type you need to handle.
 
 A name of the event is passed to an `event` decorator. When the app receives an event
 it checks its type and matches against known endpoints. To distinguish an event type 
-a header `Message-Type` must be supplied alongside with a message at the producer side.
+a header `Event-Type` must be supplied alongside with a message at the producer side.
 As soon as the endpoint is found it gets called with the event value. 
 Unmatched events are silently skipped.
 
@@ -42,7 +42,7 @@ async def handle_event(event: Event) -> None:
     assert isinstance(event, Event)
 ```
 
-> **Note:** Kafka message must be valid json if an endpoint expects `dict` or pydantic object. However,
+> **Note:** Kafka message value must be a valid json if an endpoint expects `dict` or pydantic object. However,
 there is no such limitation if events are processed as raw `bytes`.
 
 

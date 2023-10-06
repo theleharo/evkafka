@@ -56,16 +56,16 @@ class EVKafkaConsumer:
                 )
                 if messages:
                     for message in chain.from_iterable(messages.values()):
-                        message_type = None
+                        event_type = None
                         for k, v in message.headers:
-                            if k == "Message-Type":
-                                message_type = v.decode()
+                            if k == "Event-Type":
+                                event_type = v.decode()
 
                         m_ctx = MessageCtx(
                             key=message.key,
                             value=message.value,
                             headers=message.headers,
-                            message_type=message_type,
+                            event_type=event_type,
                         )
                         c_ctx = ConsumerCtx(
                             group_id=self._group_id,

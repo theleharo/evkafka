@@ -22,7 +22,7 @@ class EndpointDependencies:
 
 
 class Handle:
-    def __init__(self, event_name: str | None, endpoint: F) -> None:
+    def __init__(self, event_name: str, endpoint: F) -> None:
         self.event_name = event_name
         self.endpoint = endpoint
         self.endpoint_dependencies = get_dependencies(endpoint)
@@ -60,10 +60,7 @@ class Handle:
         return app
 
     def match(self, context: Context) -> bool:
-        if self.event_name is None:
-            return True
-
-        return context.message.message_type == self.event_name
+        return context.message.event_type == self.event_name
 
     async def __call__(self, context: Context) -> None:
         if not self.match(context):

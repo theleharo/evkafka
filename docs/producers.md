@@ -1,7 +1,7 @@
 # Producers
 
 
-EVKafka uses a header `Message-Type` to match events against endpoints. 
+EVKafka uses a header `Event-Type` to match events against endpoints. 
 You can either add this header explicitly while producing events or use an `EVKafkaProducer`:
 
 ```python

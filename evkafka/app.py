@@ -108,7 +108,7 @@ class EVKafkaApp:
 
         await asyncio.gather(*(consumer.shutdown() for consumer in self._consumers))
 
-    def event(self, event_name: str | None = None) -> Wrapped:
+    def event(self, event_name: str) -> Wrapped:
         if self._default_consumer is None:
             raise RuntimeError(
                 f"Event cannot be added because default consumer"

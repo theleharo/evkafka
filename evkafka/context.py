@@ -10,7 +10,7 @@ class MessageCtx:
     key: bytes | None
     value: Any
     headers: tuple[tuple[str, bytes], ...]
-    message_type: str | None
+    event_type: str | None
 
 
 @dataclass

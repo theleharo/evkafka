@@ -44,9 +44,9 @@ async def test_cm(orig_kafka, producer):
 @pytest.mark.parametrize(
     "headers, exp_headers",
     [
-        ({"Header": b"value"}, [("Header", b"value"), ("Message-Type", b"Test")]),
-        ({}, [("Message-Type", b"Test")]),
-        ({"Message-Type": b"other-type"}, [("Message-Type", b"Test")]),
+        ({"Header": b"value"}, [("Header", b"value"), ("Event-Type", b"Test")]),
+        ({}, [("Event-Type", b"Test")]),
+        ({"Event-Type": b"other-type"}, [("Event-Type", b"Test")]),
     ],
 )
 async def test_send_event(orig_kafka, producer, headers, exp_headers):

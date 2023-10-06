@@ -123,3 +123,18 @@ async def test_handle_pyd_type(mocker, req):
     res = await h.app(req)
 
     assert res.kw == {"a": "b"}
+
+
+@pytest.mark.parametrize(
+    "event_type,is_match", [("event", True), ("other", False), (None, False)]
+)
+def test_match(mocker, event_type, is_match):
+    def ep(e: str):
+        pass
+
+    h = Handle("event", ep)
+
+    ctx = mocker.Mock()
+    ctx.message.event_type = event_type
+
+    assert h.match(ctx) is is_match
