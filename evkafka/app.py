@@ -9,9 +9,10 @@ from types import FrameType
 
 from .config import ConsumerConfig
 from .consumer import EVKafkaConsumer
-from .context import ConsumerCtx, Context, MessageCtx
+from .context import AppContext, ConsumerCtx, Context, MessageCtx
 from .handler import Handler
-from .types import Wrapped
+from .lifespan import LifespanManager
+from .types import Lifespan, Wrapped
 
 logger = logging.getLogger(__name__)
 
@@ -21,15 +22,13 @@ class EVKafkaApp:
         self,
         config: ConsumerConfig | None = None,
         name: str | None = None,
+        lifespan: Lifespan | None = None,
     ) -> None:
-        self._tasks: set[asyncio.Task[typing.Any]] = set()
-        self._consumers: set[EVKafkaConsumer] = set()
-        self.state: dict[str, typing.Any] = {}
         self.force_exit = False
         self.should_exit = False
         self.started = False
-        self._handler_cls = Handler
 
+        self._handler_cls = Handler
         self._default_handler: Handler | None = None
         self._consumer_configs: dict[str, dict[str, typing.Any]] = {}
         self._default_consumer: dict[str, typing.Any] | None = None
@@ -38,6 +37,11 @@ class EVKafkaApp:
                 "config": config,
                 "name": name,
             }
+
+        self._tasks: set[asyncio.Task[typing.Any]] = set()
+        self._consumers: set[EVKafkaConsumer] = set()
+        self._app_context = AppContext()
+        self._lifespan_manager = LifespanManager(lifespan)
 
     def run(self) -> None:
         asyncio.run(self.serve())
@@ -68,6 +72,12 @@ class EVKafkaApp:
 
     async def startup(self) -> None:
         logger.info("Starting consumer app")
+
+        await self._lifespan_manager.start()
+        if self._lifespan_manager.should_exit:
+            self.should_exit = True
+            return
+        self._app_context.state = self._lifespan_manager.state
 
         if self._default_consumer and self._default_handler:
             self.add_consumer(
@@ -107,6 +117,7 @@ class EVKafkaApp:
             return
 
         await asyncio.gather(*(consumer.shutdown() for consumer in self._consumers))
+        await self._lifespan_manager.stop()
 
     def event(self, event_name: str) -> Wrapped:
         if self._default_consumer is None:
@@ -132,12 +143,12 @@ class EVKafkaApp:
             message_ctx: MessageCtx,
             consumer_ctx: ConsumerCtx,
             app: Handler = app,
-            state: dict[str, typing.Any] = self.state,
+            app_context: AppContext = self._app_context,
         ) -> None:
             context = Context(
                 message=message_ctx,
                 consumer=consumer_ctx,
-                state=state.copy(),
+                state=app_context.state.copy(),
             )
             return await app(context)
 

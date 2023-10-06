@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from .state import State
@@ -28,6 +28,11 @@ class Context:
     message: MessageCtx
     consumer: ConsumerCtx
     state: dict
+
+
+@dataclass
+class AppContext:
+    state: dict = field(default_factory=dict)
 
 
 class Request:
