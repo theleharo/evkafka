@@ -2,6 +2,20 @@ site_name: EVKafka
 
 theme:
   name: material
+  palette:
+    - scheme: default
+      primary: blue grey
+      accent: light blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    - scheme: slate
+      primary: black
+      accent: light blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
 
 nav:
   - Overview: 'index.md'
@@ -9,6 +23,7 @@ nav:
   - Handlers: 'handlers.md'
   - Consumers: 'consumers.md'
   - Producers: 'producers.md'
+  - Lifespan: 'lifespan.md'
 
 markdown_extensions:
   - pymdownx.highlight:
