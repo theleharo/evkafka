@@ -3,7 +3,6 @@ import pytest
 from evkafka import handle
 from evkafka.context import Request
 from evkafka.dependencies import EndpointDependencies
-from evkafka.exceptions import UnsupportedValueError
 from evkafka.handle import Handle
 
 
@@ -21,7 +20,7 @@ def get_deps(mocker):
 
 
 @pytest.mark.parametrize("typ,exp_val", [(str, "a"), (bytes, b"a"), (dict, {"a": "b"})])
-async def test_handle_simple_type(typ, exp_val, req, get_deps):
+async def test_handle_event_with_simple_type(typ, exp_val, req, get_deps):
     async def ep(e):
         return e
 
@@ -33,7 +32,7 @@ async def test_handle_simple_type(typ, exp_val, req, get_deps):
     assert await h.app(req) == exp_val
 
 
-async def test_handle_pyd_type(mocker, req, get_deps):
+async def test_handle_event_with_pyd_type(mocker, req, get_deps):
     class B:
         def __init__(self, **kw):
             self.kw = kw
@@ -53,7 +52,7 @@ async def test_handle_pyd_type(mocker, req, get_deps):
     assert res.kw == {"a": "b"}
 
 
-async def test_handle_request_type(req, get_deps):
+async def test_handle_event_and_request(req, get_deps):
     async def ep(r: Request, e: str):
         return r, e
 
@@ -65,13 +64,13 @@ async def test_handle_request_type(req, get_deps):
     assert await h.app(req) == (req, "a")
 
 
-async def test_handle_unknown_type(req, get_deps):
+async def test_handle_event_has_unsupported_type(req, get_deps):
     get_deps.return_value = EndpointDependencies(
         payload_param_name="e", payload_param_type=list, request_param_name=None
     )
 
     h = Handle("ep", lambda: None)
-    with pytest.raises(UnsupportedValueError):
+    with pytest.raises(AssertionError):
         await h.app(req)
 
 

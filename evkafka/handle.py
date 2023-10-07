@@ -3,7 +3,6 @@ from typing import Any, Awaitable, Callable, Type, cast
 
 from .context import Context, Request
 from .dependencies import EndpointDependencies, get_dependencies
-from .exceptions import UnsupportedValueError
 from .types import F
 from .utils import exec_endpoint
 
@@ -38,9 +37,8 @@ class Handle:
             elif type_ is bytes:
                 value = request.value
             else:
-                raise UnsupportedValueError(
-                    "Cannot cast event to {type_.__name__} type"
-                )
+                # get_dependencies should not allow us to be here
+                raise AssertionError("Unexpected type for payload")
 
             sig = {endpoint_deps.payload_param_name: value}
 
