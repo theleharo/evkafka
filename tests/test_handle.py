@@ -1,10 +1,10 @@
-from typing import Dict
-
 import pytest
 
 from evkafka import handle
 from evkafka.context import Request
-from evkafka.handle import Handle, get_dependencies
+from evkafka.dependencies import EndpointDependencies
+from evkafka.exceptions import UnsupportedValueError
+from evkafka.handle import Handle
 
 
 @pytest.fixture
@@ -15,101 +15,25 @@ def req(mocker):
     return r
 
 
-@pytest.mark.parametrize(
-    "typ, exp", [(dict, dict), (Dict, dict), (str, str), (bytes, bytes)]
-)
-def test_get_dependencies_payload_param_builtins(typ, exp):
-    def ep(e: typ):
-        pass
-
-    d = get_dependencies(ep)
-
-    assert d.payload_param_name == "e"
-    assert d.payload_param_type is exp
-
-
-def test_get_dependencies_payload_param_pyd_model(mocker):
-    class B:
-        pass
-
-    mocker.patch.object(handle, "BaseModel", B)
-
-    def ep(e: B):
-        pass
-
-    d = get_dependencies(ep)
-
-    assert d.payload_param_name == "e"
-    assert d.payload_param_type is B
-
-
-def test_get_dependencies_request_arg():
-    def ep(e: dict, r: Request):
-        pass
-
-    d = get_dependencies(ep)
-
-    assert d.request_param_name == "r"
-
-
-def test_get_dependencies_raises_for_extra_arg():
-    def ep(e: dict, extra: dict):
-        pass
-
-    with pytest.raises(AssertionError, match="Only one payload"):
-        get_dependencies(ep)
-
-
-def test_get_dependencies_raises_for_extra_req():
-    def ep(e: dict, r: Request, x: Request):
-        pass
-
-    with pytest.raises(AssertionError, match="Only one Request"):
-        get_dependencies(ep)
-
-
-def test_get_dependencies_raises_for_untyped_arg():
-    def ep(e):
-        pass
-
-    with pytest.raises(AssertionError, match="Untyped"):
-        get_dependencies(ep)
-
-
-def test_get_dependencies_raises_for_unsupported_type():
-    def ep(e: list):
-        pass
-
-    with pytest.raises(AssertionError, match="Unsupported"):
-        get_dependencies(ep)
-
-
-def test_get_dependencies_raises_for_no_payload_param():
-    def ep(r: Request):
-        pass
-
-    with pytest.raises(AssertionError, match="At least"):
-        get_dependencies(ep)
+@pytest.fixture
+def get_deps(mocker):
+    return mocker.patch("evkafka.handle.get_dependencies")
 
 
 @pytest.mark.parametrize("typ,exp_val", [(str, "a"), (bytes, b"a"), (dict, {"a": "b"})])
-async def test_handle_simple_type(typ, exp_val, req):
-    async def ep(e: typ):
+async def test_handle_simple_type(typ, exp_val, req, get_deps):
+    async def ep(e):
         return e
+
+    get_deps.return_value = EndpointDependencies(
+        payload_param_name="e", payload_param_type=typ, request_param_name=None
+    )
 
     h = Handle("ep", ep)
     assert await h.app(req) == exp_val
 
 
-async def test_handle_request_type(req):
-    async def ep(r: Request, e: str):
-        return r, e
-
-    h = Handle("ep", ep)
-    assert await h.app(req) == (req, "a")
-
-
-async def test_handle_pyd_type(mocker, req):
+async def test_handle_pyd_type(mocker, req, get_deps):
     class B:
         def __init__(self, **kw):
             self.kw = kw
@@ -119,10 +43,36 @@ async def test_handle_pyd_type(mocker, req):
     async def ep(e: B):
         return e
 
+    get_deps.return_value = EndpointDependencies(
+        payload_param_name="e", payload_param_type=B, request_param_name=None
+    )
+
     h = Handle("ep", ep)
     res = await h.app(req)
 
     assert res.kw == {"a": "b"}
+
+
+async def test_handle_request_type(req, get_deps):
+    async def ep(r: Request, e: str):
+        return r, e
+
+    get_deps.return_value = EndpointDependencies(
+        payload_param_name="e", payload_param_type=str, request_param_name="r"
+    )
+
+    h = Handle("ep", ep)
+    assert await h.app(req) == (req, "a")
+
+
+async def test_handle_unknown_type(req, get_deps):
+    get_deps.return_value = EndpointDependencies(
+        payload_param_name="e", payload_param_type=list, request_param_name=None
+    )
+
+    h = Handle("ep", lambda: None)
+    with pytest.raises(UnsupportedValueError):
+        await h.app(req)
 
 
 @pytest.mark.parametrize(
@@ -138,3 +88,32 @@ def test_match(mocker, event_type, is_match):
     ctx.message.event_type = event_type
 
     assert h.match(ctx) is is_match
+
+
+@pytest.mark.usefixtures("get_deps")
+async def test_handle_unmatched_event_call(mocker):
+    h = Handle("event", lambda: None)
+    app_mock = mocker.AsyncMock()
+    mocker.patch.object(h, "app", app_mock)
+    ctx_mock = mocker.Mock()
+    ctx_mock.message.event_type = "unknown"
+
+    await h(ctx_mock)
+
+    app_mock.assert_not_awaited()
+
+
+@pytest.mark.usefixtures("get_deps")
+async def test_handle_call(mocker):
+    h = Handle("event", lambda: None)
+    app_mock = mocker.AsyncMock()
+    mocker.patch.object(h, "app", app_mock)
+    ctx_mock = mocker.Mock()
+    ctx_mock.message.event_type = "event"
+
+    await h(ctx_mock)
+
+    app_mock.assert_awaited_once()
+    arg = app_mock.await_args[0][0]
+    assert isinstance(arg, Request)
+    assert arg.context == ctx_mock
