@@ -12,7 +12,7 @@ class Handler:
 
     def _register_handle(self, event_name: str, endpoint: F) -> None:
         if event_name in self._event_names:
-            raise RuntimeError(
+            raise AssertionError(
                 f'Event handler for event "{event_name}" is already registered'
             )
         handle = Handle(event_name=event_name, endpoint=endpoint)

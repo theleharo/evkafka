@@ -46,6 +46,7 @@ async def test_cm(orig_kafka, producer):
     [
         ({"Header": b"value"}, [("Header", b"value"), ("Event-Type", b"Test")]),
         ({}, [("Event-Type", b"Test")]),
+        (None, [("Event-Type", b"Test")]),
         ({"Event-Type": b"other-type"}, [("Event-Type", b"Test")]),
     ],
 )

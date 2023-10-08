@@ -38,7 +38,7 @@ class Handle:
                 value = request.value
             else:
                 # get_dependencies should not allow us to be here
-                raise AssertionError("Unexpected type for payload")
+                raise AssertionError("Unexpected typing for payload")
 
             sig = {endpoint_deps.payload_param_name: value}
 

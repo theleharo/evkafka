@@ -10,3 +10,7 @@ class State:
             return self._state[key]
         except KeyError as exc:
             raise AttributeError(f'"State" object has no attribute "{key}"') from exc
+
+    def __eq__(self, other: object) -> bool:
+        # for tests
+        return isinstance(other, State) and self._state == other._state
