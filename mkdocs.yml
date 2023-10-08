@@ -2,6 +2,7 @@ site_name: EVKafka
 
 theme:
   name: material
+  custom_dir: docs/overrides
   palette:
     - scheme: default
       primary: blue grey
