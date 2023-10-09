@@ -27,4 +27,4 @@ if __name__ == "__main__":
 More details can be found in the [documentation](https://evkafka.readthedocs.io/)
 ## Usage
 
-The framework is in pre-alpha. There are a lot of things to do include docs.
+The framework is in alpha. There are a lot of things to do.

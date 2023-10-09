@@ -116,6 +116,7 @@ class EVKafkaApp:
             # E.g. 2nd Ctrl-C from console
             return
 
+        # FIXME gather raises by default
         await asyncio.gather(*(consumer.shutdown() for consumer in self._consumers))
         await self._lifespan_manager.stop()
 
@@ -137,12 +138,20 @@ class EVKafkaApp:
         handler: Handler,
         name: str | None = None,
     ) -> None:
-        app = handler
+        async def type_middleware(
+            context: Context,
+            app: Handler = handler,
+        ) -> None:
+            for k, v in context.message.headers:
+                if k == "Event-Type":
+                    context.message.event_type = v.decode()
+                    break
+            return await app(context)
 
         async def messages_cb(
             message_ctx: MessageCtx,
             consumer_ctx: ConsumerCtx,
-            app: Handler = app,
+            app: typing.Any = type_middleware,
             app_context: AppContext = self._app_context,
         ) -> None:
             context = Context(

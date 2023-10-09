@@ -56,16 +56,11 @@ class EVKafkaConsumer:
                 )
                 if messages:
                     for message in chain.from_iterable(messages.values()):
-                        event_type = None
-                        for k, v in message.headers:
-                            if k == "Event-Type":
-                                event_type = v.decode()
-
                         m_ctx = MessageCtx(
                             key=message.key,
                             value=message.value,
                             headers=message.headers,
-                            event_type=event_type,
+                            event_type=None,
                         )
                         c_ctx = ConsumerCtx(
                             group_id=self._group_id,
@@ -83,6 +78,6 @@ class EVKafkaConsumer:
 
     async def shutdown(self) -> None:
         if self._shutdown.done():
-            return
+            return  # pragma: no cover
         self._shutdown.set_result(None)
         await asyncio.wait([self._main_loop])
