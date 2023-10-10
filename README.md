@@ -2,17 +2,20 @@
 
 **EVKafka** is a small framework for building event driven microservices.
 
-A simplest possible app may look like this:
+## Installation
 
+     $ pip install evkafka
+
+## Basic usage
 ```python
 from evkafka.app import EVKafkaApp
 
-consumer_config = {
+config = {
     "bootstrap_servers": "kafka:9092",
     "group_id": "test",
 }
 
-app = EVKafkaApp(config=consumer_config, topics="topic")
+app = EVKafkaApp(config=config, topics="topic")
 
 
 @app.event('FooEvent')
@@ -25,6 +28,12 @@ if __name__ == "__main__":
 ```
 
 More details can be found in the [documentation](https://evkafka.readthedocs.io/)
-## Usage
 
-The framework is in alpha. There are a lot of things to do.
+
+## Status
+
+The framework is in alpha.
+
+## License
+
+This project is licensed under the terms of the  MIT license.
