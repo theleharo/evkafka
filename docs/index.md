@@ -8,6 +8,9 @@ by wonderful [FastAPI](https://fastapi.tiangolo.com/).
 
 Focus on event handling and the framework takes the rest.
 
+## Installation
+
+     $ pip install evkafka
 
 ## Example
 
