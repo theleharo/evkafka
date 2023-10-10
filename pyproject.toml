@@ -1,6 +1,6 @@
 [project]
 name = "evkafka"
-version = "0.0.1"
+version = "0.0.3"
 authors = [
   { name="Aleksey Katichev", email="theleharo@gmail.com" },
 ]
