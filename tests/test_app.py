@@ -4,7 +4,8 @@ from contextlib import asynccontextmanager
 
 import pytest
 
-from evkafka import EVKafkaApp, Handler
+from evkafka import EVKafkaApp, Handler, Request
+from evkafka.state import State
 from tests.utils import TestConsumer
 
 
@@ -50,6 +51,24 @@ async def test_default_handler_handles_event(test_consumer, ctx, decoded_value):
         await consumer.messages_cb(ctx.message, ctx.consumer)
 
         assert consumer.config == {"some": "conf"}
+        assert value == decoded_value
+
+
+async def test_added_consumer_handles_event(test_consumer, ctx, decoded_value):
+    value = None
+    app = EVKafkaApp()
+    h = Handler()
+
+    @h.event("EventType")
+    def handler(e: dict):
+        nonlocal value
+        value = e
+
+    app.add_consumer(config={"some": "conf"}, handler=h)
+
+    async with run_app(app):
+        consumer: TestConsumer = test_consumer.pop()
+        await consumer.messages_cb(ctx.message, ctx.consumer)
         assert value == decoded_value
 
 
@@ -131,6 +150,25 @@ async def test_app_lifespan_skips_shutdown_on_forced_exit():
 
     assert started
     assert not stopped
+
+
+async def test_handler_got_state(test_consumer, ctx, decoded_value):
+    @asynccontextmanager
+    async def lifespan():
+        yield {"life": "span"}
+
+    state = None
+    app = EVKafkaApp(config={"some": "conf"}, lifespan=lifespan)
+
+    @app.event("EventType")
+    def handler(e: dict, r: Request):
+        nonlocal state
+        state = r.state
+
+    async with run_app(app):
+        consumer: TestConsumer = test_consumer.pop()
+        await consumer.messages_cb(ctx.message, ctx.consumer)
+        assert state == State({"life": "span"})
 
 
 def test_handle_exit_forces_on_second_call():
