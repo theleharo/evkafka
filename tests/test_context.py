@@ -10,7 +10,7 @@ def req(ctx):
 
 
 def test_request_headers(req):
-    assert req.headers == {"header": b"value"}
+    assert req.headers == {"Event-Type": b"EventType"}
 
 
 def test_request_json(req):

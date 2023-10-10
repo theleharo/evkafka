@@ -43,7 +43,7 @@ class EVKafkaApp:
         self._app_context = AppContext()
         self._lifespan_manager = LifespanManager(lifespan)
 
-    def run(self) -> None:
+    def run(self) -> None:  # pragma:  no cover
         asyncio.run(self.serve())
         if not self.started:
             sys.exit(3)
@@ -58,7 +58,7 @@ class EVKafkaApp:
 
     def install_signal_handlers(self) -> None:
         if threading.current_thread() is not threading.main_thread():
-            return
+            return  # pragma: no cover
 
         loop = asyncio.get_event_loop()
         for sig in (signal.SIGINT, signal.SIGTERM):
@@ -86,12 +86,6 @@ class EVKafkaApp:
                 name=self._default_consumer["name"],
             )
 
-        if not self._consumer_configs:
-            logger.error("No consumers defined")
-            self.should_exit = True
-            return
-
-        # TODO ensure that every consumer has started otherwise need to stop gracefully
         for _name, config_items in self._consumer_configs.items():
             consumer = EVKafkaConsumer(
                 config=config_items["config"],
@@ -116,16 +110,14 @@ class EVKafkaApp:
             # E.g. 2nd Ctrl-C from console
             return
 
-        # FIXME gather raises by default
         await asyncio.gather(*(consumer.shutdown() for consumer in self._consumers))
         await self._lifespan_manager.stop()
 
     def event(self, event_name: str) -> Wrapped:
-        if self._default_consumer is None:
-            raise RuntimeError(
-                f"Event cannot be added because default consumer"
-                f'was not passed to "{self.__class__.__name__}()"'
-            )
+        assert self._default_consumer, (
+            f"Event cannot be added because default consumer "
+            f'was not passed to "{self.__class__.__name__}()"'
+        )
 
         if self._default_handler is None:
             self._default_handler = self._handler_cls()

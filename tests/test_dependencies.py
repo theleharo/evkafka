@@ -7,14 +7,6 @@ from evkafka.context import Request
 from evkafka.handle import get_dependencies
 
 
-@pytest.fixture
-def req(mocker):
-    r = mocker.Mock()
-    r.value = b"a"
-    r.json = {"a": "b"}
-    return r
-
-
 @pytest.mark.parametrize(
     "typ, exp", [(dict, dict), (Dict, dict), (str, str), (bytes, bytes)]
 )

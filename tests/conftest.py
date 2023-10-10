@@ -4,12 +4,22 @@ from evkafka.context import ConsumerCtx, Context, MessageCtx
 
 
 @pytest.fixture
-def ctx():
+def raw_value():
+    return b'{"a":"b"}'
+
+
+@pytest.fixture
+def decoded_value():
+    return {"a": "b"}
+
+
+@pytest.fixture
+def ctx(raw_value):
     return Context(
         message=MessageCtx(
             key=b"key",
-            value=b'{"a":"b"}',
-            headers=(("header", b"value"),),
+            value=raw_value,
+            headers=(("Event-Type", b"EventType"),),
             event_type="test",
         ),
         consumer=ConsumerCtx(
@@ -22,3 +32,11 @@ def ctx():
         ),
         state={"some": "state"},
     )
+
+
+@pytest.fixture
+def req(mocker, decoded_value):
+    r = mocker.Mock()
+    r.value = b"a"
+    r.json = decoded_value
+    return r

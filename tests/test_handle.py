@@ -7,14 +7,6 @@ from evkafka.handle import Handle
 
 
 @pytest.fixture
-def req(mocker):
-    r = mocker.Mock()
-    r.value = b"a"
-    r.json = {"a": "b"}
-    return r
-
-
-@pytest.fixture
 def get_deps(mocker):
     return mocker.patch("evkafka.handle.get_dependencies")
 
