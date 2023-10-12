@@ -24,7 +24,7 @@ class EVKafkaProducer:
         self,
         topic: str,
         event: bytes,
-        event_name: str,
+        event_type: str,
         key: bytes | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
@@ -35,7 +35,7 @@ class EVKafkaProducer:
 
         event_headers: dict[str, bytes] = {
             **headers,
-            "Event-Type": event_name.encode(),
+            "Event-Type": event_type.encode(),
         }
 
         return await self._producer.send(

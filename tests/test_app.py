@@ -37,7 +37,7 @@ async def run_app(app):
     await asyncio.gather(t)
 
 
-async def test_default_handler_handles_event(test_consumer, ctx, decoded_value):
+async def test_default_consumer_handles_event(test_consumer, ctx, decoded_value):
     value = None
     app = EVKafkaApp(config={"some": "conf"})
 

@@ -123,7 +123,7 @@ class EVKafkaApp:
         await asyncio.gather(*(consumer.shutdown() for consumer in self._consumers))
         await self._lifespan_manager.stop()
 
-    def event(self, event_name: str) -> Wrapped:
+    def event(self, event_type: str) -> Wrapped:
         assert self._default_consumer, (
             f"Event cannot be added because default consumer configuration "
             f'is not passed to "{self.__class__.__name__}()"'
@@ -132,7 +132,7 @@ class EVKafkaApp:
         if self._default_handler is None:
             self._default_handler = self._handler_cls()
 
-        return self._default_handler.event(event_name)
+        return self._default_handler.event(event_type)
 
     def add_consumer(
         self,

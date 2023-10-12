@@ -21,7 +21,7 @@ def test_handler_add_event(handler, handle):
 
     assert len(handler.handles) == 1
     assert handler.handles[0] == handle.return_value
-    handle.assert_called_once_with(event_name="ev", endpoint=h)
+    handle.assert_called_once_with(event_type="ev", endpoint=h)
 
 
 def test_handler_add_event_with_the_same_name_raises(handler, handle):
@@ -32,7 +32,7 @@ def test_handler_add_event_with_the_same_name_raises(handler, handle):
 
     with pytest.raises(AssertionError):
         handler.event("ev")(lambda: None)
-    handle.assert_called_once_with(event_name="ev", endpoint=h)
+    handle.assert_called_once_with(event_type="ev", endpoint=h)
 
 
 def test_handler_include_handler(handler):

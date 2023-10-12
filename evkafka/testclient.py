@@ -43,7 +43,7 @@ class TestClient:
         name: str,
         topic: str,
         event: bytes,
-        event_name: str,
+        event_type: str,
         key: bytes | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
@@ -59,14 +59,14 @@ class TestClient:
 
         event_headers: dict[str, bytes] = {
             **headers,
-            "Event-Type": event_name.encode(),
+            "Event-Type": event_type.encode(),
         }
 
         message_ctx = MessageCtx(
             key=key,
             value=event,
             headers=tuple(event_headers.items()),
-            event_type=event_name,
+            event_type=event_type,
         )
         consumer_ctx = ConsumerCtx(
             group_id=config.get("group_id"),

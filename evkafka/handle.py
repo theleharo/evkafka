@@ -13,8 +13,8 @@ except ModuleNotFoundError:
 
 
 class Handle:
-    def __init__(self, event_name: str, endpoint: F) -> None:
-        self.event_name = event_name
+    def __init__(self, event_type: str, endpoint: F) -> None:
+        self.event_type = event_type
         self.endpoint = endpoint
         self.endpoint_dependencies = get_dependencies(endpoint)
         self.app = self.get_app()
@@ -50,7 +50,7 @@ class Handle:
         return app
 
     def match(self, context: Context) -> bool:
-        return context.message.event_type == self.event_name
+        return context.message.event_type == self.event_type
 
     async def __call__(self, context: Context) -> None:
         if not self.match(context):

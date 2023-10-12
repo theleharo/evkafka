@@ -54,7 +54,7 @@ async def test_send_event(orig_kafka, producer, headers, exp_headers):
     res = await producer.send_event(
         topic="topic",
         event=b"{}",
-        event_name="Test",
+        event_type="Test",
         key=b"key",
         partition=0,
         timestamp_ms=1,

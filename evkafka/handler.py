@@ -8,20 +8,20 @@ from .types import F
 class Handler:
     def __init__(self) -> None:
         self.handles: list[Handle] = []
-        self._event_names: set[str] = set()
+        self._event_types: set[str] = set()
 
-    def _register_handle(self, event_name: str, endpoint: F) -> None:
-        if event_name in self._event_names:
+    def _register_handle(self, event_type: str, endpoint: F) -> None:
+        if event_type in self._event_types:
             raise AssertionError(
-                f'Event handler for event "{event_name}" is already registered'
+                f'Event handler for event "{event_type}" is already registered'
             )
-        handle = Handle(event_name=event_name, endpoint=endpoint)
+        handle = Handle(event_type=event_type, endpoint=endpoint)
         self.handles.append(handle)
-        self._event_names.add(event_name)
+        self._event_types.add(event_type)
 
-    def event(self, event_name: str) -> Callable[[F], F]:
+    def event(self, event_type: str) -> Callable[[F], F]:
         def decorator(endpoint: F) -> F:
-            self._register_handle(event_name, endpoint)
+            self._register_handle(event_type, endpoint)
             return endpoint
 
         return decorator
@@ -33,4 +33,4 @@ class Handler:
 
     def include_handler(self, handler: "Handler") -> None:
         for handle in handler.handles:
-            self._register_handle(handle.event_name, handle.endpoint)
+            self._register_handle(handle.event_type, handle.endpoint)
