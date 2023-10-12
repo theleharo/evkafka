@@ -30,13 +30,15 @@ class EVKafkaApp:
 
         self._handler_cls = Handler
         self._default_handler: Handler | None = None
-        self._consumer_configs: dict[str, dict[str, typing.Any]] = {}
         self._default_consumer: dict[str, typing.Any] | None = None
         if config:
             self._default_consumer = {
                 "config": config,
                 "name": name,
             }
+
+        self._consumer_configs: dict[str, dict[str, typing.Any]] = {}
+        self._consumers_collected = False
 
         self._tasks: set[asyncio.Task[typing.Any]] = set()
         self._consumers: set[EVKafkaConsumer] = set()
@@ -79,14 +81,9 @@ class EVKafkaApp:
             return
         self._app_context.state = self._lifespan_manager.state
 
-        if self._default_consumer and self._default_handler:
-            self.add_consumer(
-                config=self._default_consumer["config"],
-                handler=self._default_handler,
-                name=self._default_consumer["name"],
-            )
+        consumer_configs = self.collect_consumer_configs()
 
-        for _name, config_items in self._consumer_configs.items():
+        for _name, config_items in consumer_configs.items():
             consumer = EVKafkaConsumer(
                 config=config_items["config"],
                 messages_cb=config_items["messages_cb"],
@@ -94,6 +91,19 @@ class EVKafkaApp:
             self._consumers.add(consumer)
             self._tasks.add(consumer.startup())
         self.started = True
+
+    def collect_consumer_configs(self) -> dict[str, dict[str, typing.Any]]:
+        if self._consumers_collected:
+            return self._consumer_configs
+
+        if self._default_consumer and self._default_handler:
+            self.add_consumer(
+                config=self._default_consumer["config"],
+                handler=self._default_handler,
+                name=self._default_consumer["name"],
+            )
+        self._consumers_collected = True
+        return self._consumer_configs
 
     async def main(self) -> None:
         while not self.should_exit:
@@ -115,8 +125,8 @@ class EVKafkaApp:
 
     def event(self, event_name: str) -> Wrapped:
         assert self._default_consumer, (
-            f"Event cannot be added because default consumer "
-            f'was not passed to "{self.__class__.__name__}()"'
+            f"Event cannot be added because default consumer configuration "
+            f'is not passed to "{self.__class__.__name__}()"'
         )
 
         if self._default_handler is None:
@@ -130,6 +140,11 @@ class EVKafkaApp:
         handler: Handler,
         name: str | None = None,
     ) -> None:
+        if self._consumers_collected:
+            raise RuntimeError(
+                "Cannot add another consumer after an application has started"
+            )
+
         async def type_middleware(
             context: Context,
             app: Handler = handler,
