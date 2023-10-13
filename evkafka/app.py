@@ -117,7 +117,6 @@ class EVKafkaApp:
         logger.info("Shutting down")
 
         if self.force_exit:
-            # E.g. 2nd Ctrl-C from console
             return
 
         await asyncio.gather(*(consumer.shutdown() for consumer in self._consumers))

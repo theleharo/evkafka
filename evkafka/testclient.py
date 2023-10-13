@@ -54,11 +54,8 @@ class TestClient:
         messages_cb = consumer_config["messages_cb"]
         config = consumer_config["config"]
 
-        if headers is None:
-            headers = {}
-
         event_headers: dict[str, bytes] = {
-            **headers,
+            **(headers if headers else {}),
             "Event-Type": event_type.encode(),
         }
 

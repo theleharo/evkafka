@@ -2,7 +2,7 @@
 
 Handle kafka events easy.
 
-**EVKafka** is a small framework for building event driven microservices.
+**EVKafka** is a small framework for building event driven microservices with Python.
 It is based upon [aiokafka](https://aiokafka.readthedocs.io/en/stable/) and inspired
 by wonderful [FastAPI](https://fastapi.tiangolo.com/).
 
@@ -14,7 +14,7 @@ Focus on event handling and the framework takes the rest.
 
 ## Example
 
-A simplest possible app may look like this:
+A simplest possible consumer app may look like this:
 
 ```python
 from evkafka import EVKafkaApp
@@ -37,3 +37,4 @@ def foo_handler(event: dict) -> None:
 if __name__ == "__main__":
     app.run()
 ```
+

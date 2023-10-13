@@ -10,7 +10,7 @@ from tests.utils import TestConsumer
 
 
 @pytest.fixture
-def test_consumer(mocker):
+def mocked_consumer(mocker):
     c = mocker.patch("evkafka.app.EVKafkaConsumer")
 
     inst = set()
@@ -37,7 +37,20 @@ async def run_app(app):
     await asyncio.gather(t)
 
 
-async def test_default_consumer_handles_event(test_consumer, ctx, decoded_value):
+@pytest.mark.usefixtures("mocked_consumer")
+async def test_default_consumer_is_added_to_configs(ctx, decoded_value):
+    app = EVKafkaApp(config={"some": "conf"}, name="some")
+
+    @app.event("EventType")
+    def handler(e: dict):
+        pass
+
+    async with run_app(app):
+        configs = app.collect_consumer_configs()
+        assert "some" in configs
+
+
+async def test_default_consumer_handles_event(mocked_consumer, ctx, decoded_value):
     value = None
     app = EVKafkaApp(config={"some": "conf"})
 
@@ -47,14 +60,14 @@ async def test_default_consumer_handles_event(test_consumer, ctx, decoded_value)
         value = e
 
     async with run_app(app):
-        consumer: TestConsumer = test_consumer.pop()
+        consumer: TestConsumer = mocked_consumer.pop()
         await consumer.messages_cb(ctx.message, ctx.consumer)
 
         assert consumer.config == {"some": "conf"}
         assert value == decoded_value
 
 
-async def test_added_consumer_handles_event(test_consumer, ctx, decoded_value):
+async def test_added_consumer_handles_event(mocked_consumer, ctx, decoded_value):
     value = None
     app = EVKafkaApp()
     h = Handler()
@@ -67,12 +80,28 @@ async def test_added_consumer_handles_event(test_consumer, ctx, decoded_value):
     app.add_consumer(config={"some": "conf"}, handler=h)
 
     async with run_app(app):
-        consumer: TestConsumer = test_consumer.pop()
+        consumer: TestConsumer = mocked_consumer.pop()
         await consumer.messages_cb(ctx.message, ctx.consumer)
         assert value == decoded_value
 
 
-async def test_app_exits_on_any_consumer_error(test_consumer, ctx, decoded_value):
+@pytest.mark.usefixtures("mocked_consumer")
+async def test_consumer_cannot_be_added_after_start():
+    app = EVKafkaApp()
+    h = Handler()
+
+    @h.event("EventType")
+    def handler(e: dict):
+        pass
+
+    app.add_consumer(config={"some": "conf"}, handler=h)
+
+    async with run_app(app):
+        with pytest.raises(RuntimeError):
+            app.add_consumer(config={"some": "conf"}, handler=h)
+
+
+async def test_app_exits_on_any_consumer_error(mocked_consumer, ctx, decoded_value):
     app = EVKafkaApp()
 
     h = Handler()
@@ -88,7 +117,7 @@ async def test_app_exits_on_any_consumer_error(test_consumer, ctx, decoded_value
     while not app.started:
         await asyncio.sleep(0.001)
 
-    consumer: TestConsumer = test_consumer.pop()
+    consumer: TestConsumer = mocked_consumer.pop()
     consumer.error = True
 
     await asyncio.gather(t)
@@ -152,7 +181,7 @@ async def test_app_lifespan_skips_shutdown_on_forced_exit():
     assert not stopped
 
 
-async def test_handler_got_state(test_consumer, ctx, decoded_value):
+async def test_handler_got_state(mocked_consumer, ctx, decoded_value):
     @asynccontextmanager
     async def lifespan():
         yield {"life": "span"}
@@ -166,7 +195,7 @@ async def test_handler_got_state(test_consumer, ctx, decoded_value):
         state = r.state
 
     async with run_app(app):
-        consumer: TestConsumer = test_consumer.pop()
+        consumer: TestConsumer = mocked_consumer.pop()
         await consumer.messages_cb(ctx.message, ctx.consumer)
         assert state == State({"life": "span"})
 
