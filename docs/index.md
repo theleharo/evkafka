@@ -3,7 +3,7 @@
 Handle kafka events easy.
 
 **EVKafka** is a small framework for building event driven microservices 
-with Apache Kafka and Python. It uses is based upon 
+with Apache Kafka and Python. It is based upon 
 [aiokafka](https://aiokafka.readthedocs.io/en/stable/) and inspired
 by wonderful [FastAPI](https://fastapi.tiangolo.com/).
 
