@@ -21,7 +21,7 @@ class EVKafkaApp:
     def __init__(
         self,
         config: ConsumerConfig | None = None,
-        name: str | None = None,
+        name: str | None = "default",
         lifespan: Lifespan | None = None,
     ) -> None:
         self.force_exit = False

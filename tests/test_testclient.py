@@ -10,7 +10,6 @@ from evkafka.context import ConsumerCtx, Context, MessageCtx, Request
 @pytest.fixture
 def send_event():
     return {
-        "name": "default",
         "topic": "topic",
         "event": b'{"a":"b"}',
         "event_type": "Event",
@@ -49,7 +48,6 @@ def exp_ctx(send_event):
 def default_app(exp_ctx):
     app = EVKafkaApp(
         config={"topics": ["topic"], "group_id": "group", "client_id": "client"},
-        name="default",
     )
 
     event = None
@@ -84,7 +82,7 @@ def app(exp_ctx):
     app.add_consumer(
         config={"topics": ["topic"], "group_id": "group", "client_id": "client"},
         handler=h,
-        name="default",
+        name="app-consumer",
     )
 
     yield app
@@ -107,10 +105,11 @@ def lifespan(mocker):
     return lifespan, start, stop
 
 
-def test_client():
+def test_client_no_consumers(send_event):
     app = EVKafkaApp()
-    with TestClient(app):
-        pass
+    with pytest.raises(AssertionError, match="No consumers"):
+        with TestClient(app) as c:
+            c.send_event(**send_event)
 
 
 async def test_client_in_async_mode_raises():
@@ -130,9 +129,38 @@ def test_client_send_event_app(app, send_event):
         c.send_event(**send_event)
 
 
-def test_client_send_event_app_to_unknown_consumer(send_event):
-    app = EVKafkaApp()
+def test_client_send_event_to_unknown_consumer(send_event):
+    app = EVKafkaApp(config={"topics": ["topic"]}, name="default")
+
+    @app.event("Event")
+    def handle_event(e: bytes) -> None:
+        pass
+
     with pytest.raises(AssertionError, match="Consumer with name"):
+        with TestClient(app) as c:
+            c.send_event(**send_event, consumer_name="unknown")
+
+
+def test_client_send_event_too_many_consumers(send_event):
+    h = Handler()
+
+    @h.event("Event")
+    async def handle_event(e: bytes) -> None:
+        pass
+
+    app = EVKafkaApp()
+    app.add_consumer(
+        config={"topics": ["topic"], "group_id": "group", "client_id": "client"},
+        handler=h,
+        name="first-consumer",
+    )
+    app.add_consumer(
+        config={"topics": ["topic"], "group_id": "group", "client_id": "client"},
+        handler=h,
+        name="second-consumer",
+    )
+
+    with pytest.raises(AssertionError, match="Multiple consumers"):
         with TestClient(app) as c:
             c.send_event(**send_event)
 

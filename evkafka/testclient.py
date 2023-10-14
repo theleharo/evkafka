@@ -19,7 +19,6 @@ class TestClient:
 
     def send_event(
         self,
-        name: str,
         topic: str,
         event: bytes,
         event_type: str,
@@ -27,8 +26,9 @@ class TestClient:
         partition: int | None = None,
         timestamp_ms: int | None = None,
         headers: dict[str, bytes] | None = None,
+        consumer_name: str | None = None,
     ) -> None:
-        consumer_config = self.get_consumer_config(name)
+        consumer_config = self.get_consumer_config(consumer_name)
         messages_cb = consumer_config["messages_cb"]
         config = consumer_config["config"]
 
@@ -59,9 +59,20 @@ class TestClient:
 
         asyncio.run_coroutine_threadsafe(send(), self._loop)
 
-    def get_consumer_config(self, name: str) -> dict[str, Any]:
+    def get_consumer_config(self, name: str | None) -> dict[str, Any]:
+        configs = self.app.collect_consumer_configs()
+        if len(configs) == 0:
+            raise AssertionError("No consumers registered")
+
+        if name is None:
+            if len(configs) == 1:
+                return list(configs.values())[0]
+            raise AssertionError(
+                "Multiple consumers registered. You need to provide\n"
+                "a consumer name."
+            )
         try:
-            return self.app.collect_consumer_configs()[name]
+            return configs[name]
         except KeyError:
             raise AssertionError(
                 f'Consumer with name "{name}" is not registered'
