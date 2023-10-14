@@ -1,6 +1,6 @@
 # evkafka
 
-**EVKafka** is a small framework for building event driven microservices.
+**EVKafka** is a small framework for building event driven microservices with Apache Kafka and Python.
 
 ## Installation
 

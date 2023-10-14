@@ -43,6 +43,7 @@ class EVKafkaApp:
         self._tasks: set[asyncio.Task[typing.Any]] = set()
         self._consumers: set[EVKafkaConsumer] = set()
         self._app_context = AppContext()
+        self.lifespan = lifespan
         self._lifespan_manager = LifespanManager(lifespan)
 
     def run(self) -> None:  # pragma:  no cover

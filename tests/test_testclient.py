@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from unittest import mock
 
 import pytest
@@ -92,6 +93,20 @@ def app(exp_ctx):
     assert ctx == exp_ctx
 
 
+@pytest.fixture
+def lifespan(mocker):
+    start = mocker.AsyncMock()
+    stop = mocker.AsyncMock()
+
+    @asynccontextmanager
+    async def lifespan():
+        await start()
+        yield {"some": "state"}
+        await stop()
+
+    return lifespan, start, stop
+
+
 def test_client():
     app = EVKafkaApp()
     with TestClient(app):
@@ -100,7 +115,7 @@ def test_client():
 
 async def test_client_in_async_mode_raises():
     app = EVKafkaApp()
-    with pytest.raises(RuntimeError, match="cannot be used"):
+    with pytest.raises(AssertionError, match="cannot be used"):
         with TestClient(app):
             pass
 
@@ -117,6 +132,33 @@ def test_client_send_event_app(app, send_event):
 
 def test_client_send_event_app_to_unknown_consumer(send_event):
     app = EVKafkaApp()
-    with pytest.raises(RuntimeError, match="Consumer with name"):
+    with pytest.raises(AssertionError, match="Consumer with name"):
         with TestClient(app) as c:
             c.send_event(**send_event)
+
+
+def test_client_executes_lifespan(lifespan):
+    ls, start, stop = lifespan
+    app = EVKafkaApp(lifespan=ls)
+    with TestClient(app):
+        start.assert_awaited_once()
+        stop.assert_not_awaited()
+    stop.assert_awaited_once()
+
+
+def test_client_broken_lifespan_start(lifespan):
+    ls, start, stop = lifespan
+    start.side_effect = Exception
+    app = EVKafkaApp(lifespan=ls)
+    with pytest.raises(RuntimeError, match="not started"):
+        with TestClient(app):
+            pass
+
+
+def test_client_broken_lifespan_stop(lifespan):
+    ls, start, stop = lifespan
+    stop.side_effect = Exception
+    app = EVKafkaApp(lifespan=ls)
+    with pytest.raises(RuntimeError, match="not stopped"):
+        with TestClient(app):
+            pass

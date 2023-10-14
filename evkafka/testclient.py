@@ -1,42 +1,21 @@
 import asyncio
 import random
+import threading
 import time
 from asyncio import AbstractEventLoop
 from types import TracebackType
 from typing import Any, Type
 
 from evkafka import EVKafkaApp
-from evkafka.context import ConsumerCtx, MessageCtx
+from evkafka.context import AppContext, ConsumerCtx, MessageCtx
+from evkafka.lifespan import LifespanManager
 
 
 class TestClient:
-    loop: AbstractEventLoop
+    _loop: AbstractEventLoop
 
     def __init__(self, app: EVKafkaApp) -> None:
         self.app = app
-
-    def __enter__(self) -> "TestClient":
-        try:
-            asyncio.get_running_loop()
-        except RuntimeError:
-            pass
-        else:
-            raise RuntimeError(
-                "TestClient cannot be used inside asynchronous tests or with asynchronous fixtures."
-            )
-        policy = asyncio.get_event_loop_policy()
-        new_loop = policy.new_event_loop()
-        policy.set_event_loop(new_loop)
-        self.loop = new_loop
-        return self
-
-    def __exit__(
-        self,
-        exc_type: Type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: TracebackType | None,
-    ) -> None:
-        self.loop.close()
 
     def send_event(
         self,
@@ -50,7 +29,6 @@ class TestClient:
         headers: dict[str, bytes] | None = None,
     ) -> None:
         consumer_config = self.get_consumer_config(name)
-
         messages_cb = consumer_config["messages_cb"]
         config = consumer_config["config"]
 
@@ -75,14 +53,77 @@ class TestClient:
         )
 
         async def send() -> None:
-            await messages_cb(message_ctx, consumer_ctx)
+            app_ctx = AppContext()
+            app_ctx.state = self._lifespan_manager.state
+            await messages_cb(message_ctx, consumer_ctx, app_context=app_ctx)
 
-        self.loop.run_until_complete(send())
+        asyncio.run_coroutine_threadsafe(send(), self._loop)
 
     def get_consumer_config(self, name: str) -> dict[str, Any]:
         try:
             return self.app.collect_consumer_configs()[name]
         except KeyError:
-            raise RuntimeError(
+            raise AssertionError(
                 f'Consumer with name "{name}" is not registered'
             ) from None
+
+    def __enter__(self) -> "TestClient":
+        self._start_test_loop()
+        self._start_lifespan()
+        return self
+
+    def __exit__(
+        self,
+        exc_type: Type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        try:
+            self._stop_lifespan()
+        finally:
+            self._stop_test_loop()
+
+    def _start_test_loop(self) -> None:
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError(
+                "TestClient cannot be used inside asynchronous tests or with asynchronous fixtures."
+            )
+        self._test_loop_started = threading.Event()
+        self._test_loop_thread = threading.Thread(target=self._test_loop)
+        self._test_loop_thread.start()
+        self._test_loop_started.wait()
+
+    def _start_lifespan(self) -> None:
+        self._lifespan_manager = LifespanManager(self.app.lifespan)
+        asyncio.run_coroutine_threadsafe(
+            self._lifespan_manager.start(), self._loop
+        ).result()
+        if self._lifespan_manager.should_exit:
+            self._stop_test_loop()
+            raise RuntimeError("Lifespan has not started properly")
+
+    def _test_loop(self) -> None:
+        policy = asyncio.get_event_loop_policy()
+        self._loop = policy.new_event_loop()
+        policy.set_event_loop(self._loop)
+        self._test_loop_started.set()
+        try:
+            self._loop.run_forever()
+        finally:
+            self._loop.run_until_complete(self._loop.shutdown_asyncgens())
+            self._loop.close()
+
+    def _stop_lifespan(self) -> None:
+        asyncio.run_coroutine_threadsafe(
+            self._lifespan_manager.stop(), self._loop
+        ).result()
+        if self._lifespan_manager.should_exit:
+            raise RuntimeError("Lifespan has not stopped properly")
+
+    def _stop_test_loop(self) -> None:
+        self._loop.call_soon_threadsafe(self._loop.stop)
+        self._test_loop_thread.join()
