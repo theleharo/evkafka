@@ -1,14 +1,22 @@
 import asyncio
+import json
 from types import TracebackType
-from typing import Type
+from typing import Any, Type
 
 from aiokafka import AIOKafkaProducer
 
 from evkafka.config import ProducerConfig
 
+try:
+    from pydantic import BaseModel  # type: ignore
+except ModuleNotFoundError:
+    BaseModel: Type = None  # type: ignore
+
 
 class EVKafkaProducer:
     def __init__(self, config: ProducerConfig) -> None:
+        config = config.copy()
+        self.topic: str | None = config.pop("topic", None)
         self._producer = AIOKafkaProducer(**config)
 
     async def start(self) -> None:
@@ -22,9 +30,9 @@ class EVKafkaProducer:
 
     async def send_event(
         self,
-        topic: str,
-        event: bytes,
+        event: Any,
         event_type: str,
+        topic: str | None = None,
         key: bytes | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
@@ -32,20 +40,40 @@ class EVKafkaProducer:
     ) -> asyncio.Future:
         if headers is None:
             headers = {}
-
+        topic = topic or self.topic
+        if topic is None:
+            raise RuntimeError(
+                "No default topic provided for producer.\n"
+                "You must specify topic either with send_event() call or with producer config."
+            )
         event_headers: dict[str, bytes] = {
             **headers,
             "Event-Type": event_type.encode(),
         }
-
+        value = self.encode_event(event)
         return await self._producer.send(
             topic=topic,
-            value=event,
+            value=value,
             key=key,
             partition=partition,
             timestamp_ms=timestamp_ms,
             headers=list(event_headers.items()),
         )
+
+    def encode_event(self, event: Any) -> bytes:
+        if isinstance(event, dict):
+            value: bytes = json.dumps(event).encode()
+        elif BaseModel and isinstance(event, BaseModel):
+            # todo handle v2
+            value = event.json().encode()
+        elif isinstance(event, str):
+            value = event.encode()
+        elif isinstance(event, bytes):
+            value = event
+        else:
+            raise RuntimeError("Unexpected event type")
+
+        return value
 
     async def __aenter__(self) -> "EVKafkaProducer":
         await self.start()

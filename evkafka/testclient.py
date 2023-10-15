@@ -19,9 +19,9 @@ class TestClient:
 
     def send_event(
         self,
-        topic: str,
         event: bytes,
         event_type: str,
+        topic: str,
         key: bytes | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,

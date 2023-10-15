@@ -44,6 +44,7 @@ class ConsumerConfig(TypedDict, total=False):
 
 
 class ProducerConfig(TypedDict, total=False):
+    topic: str
     bootstrap_servers: str | list[str]
     client_id: str
     key_serializer: Callable

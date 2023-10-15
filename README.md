@@ -6,25 +6,49 @@
 
      $ pip install evkafka
 
-## Basic usage
+## Basic consumer
 ```python
-from evkafka.app import EVKafkaApp
+from evkafka import EVKafkaApp
+
 
 config = {
+    "topics": ["topic"],
     "bootstrap_servers": "kafka:9092",
     "group_id": "test",
 }
 
-app = EVKafkaApp(config=config, topics="topic")
+app = EVKafkaApp(config=config)
 
 
-@app.event('FooEvent')
-def foo_handler(event: dict) -> None:
+@app.event("FooEvent")
+async def foo_handler(event: dict) -> None:
     print(event)
 
 
 if __name__ == "__main__":
     app.run()
+```
+
+## Basic producer
+```python
+import asyncio
+from evkafka import EVKafkaProducer
+
+
+async def produce(event: dict, event_type: str):
+    config = {
+        "topic": "topic", 
+        "bootstrap_servers": "kafka:9092"
+    }
+
+    async with EVKafkaProducer(config) as producer:
+        await producer.send_event(
+            event=event,
+            event_type=event_type,
+        )
+
+if __name__ == "__main__":
+    asyncio.run(produce({"data": "value"}, "FooEvent"))
 ```
 
 More details can be found in the [documentation](https://evkafka.readthedocs.io/)

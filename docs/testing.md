@@ -72,7 +72,7 @@ def test_store_event():
 
 ## Running Lifespan in tests
 
-When used as a context manager **TestClient** calls an application lifespan automatically (if present).
+When used as a context manager `TestClient` calls an application lifespan automatically (if present).
 
 ```python
 def test_store_event():
