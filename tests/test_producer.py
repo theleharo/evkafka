@@ -12,7 +12,7 @@ def orig_kafka(mocker):
 
 @pytest.fixture
 def producer():
-    return EVKafkaProducer(config={"bootstrap_servers": "kafka"})
+    return EVKafkaProducer(config={"bootstrap_servers": "kafka", "topic": "topic"})
 
 
 async def test_start(orig_kafka, producer):
@@ -52,7 +52,6 @@ async def test_cm(orig_kafka, producer):
 )
 async def test_send_event(orig_kafka, producer, headers, exp_headers):
     res = await producer.send_event(
-        topic="topic",
         event=b"{}",
         event_type="Test",
         key=b"key",
@@ -71,3 +70,107 @@ async def test_send_event(orig_kafka, producer, headers, exp_headers):
     )
 
     assert res == orig_kafka.send.return_value
+
+
+async def test_send_event_with_topic(orig_kafka, producer):
+    res = await producer.send_event(
+        event=b"{}",
+        event_type="Test",
+        key=b"key",
+        partition=0,
+        timestamp_ms=1,
+        topic="other_topic",
+    )
+
+    orig_kafka.send.assert_awaited_once_with(
+        topic="other_topic",
+        value=b"{}",
+        key=b"key",
+        partition=0,
+        timestamp_ms=1,
+        headers=[("Event-Type", b"Test")],
+    )
+
+    assert res == orig_kafka.send.return_value
+
+
+@pytest.mark.parametrize(
+    "event",
+    [
+        b'{"key": "value"}',
+        '{"key": "value"}',
+        {"key": "value"},
+    ],
+)
+async def test_send_event_types(orig_kafka, producer, event):
+    res = await producer.send_event(
+        event=event,
+        event_type="Test",
+        key=b"key",
+        partition=0,
+        timestamp_ms=1,
+        topic="other_topic",
+    )
+
+    orig_kafka.send.assert_awaited_once_with(
+        topic="other_topic",
+        value=b'{"key": "value"}',
+        key=b"key",
+        partition=0,
+        timestamp_ms=1,
+        headers=[("Event-Type", b"Test")],
+    )
+
+    assert res == orig_kafka.send.return_value
+
+
+async def test_send_event_pyd(mocker, orig_kafka, producer):
+    class B:
+        def json(self):
+            return '{"key": "value"}'
+
+    mocker.patch("evkafka.producer.BaseModel", B)
+
+    res = await producer.send_event(
+        event=B(),
+        event_type="Test",
+        key=b"key",
+        partition=0,
+        timestamp_ms=1,
+        topic="other_topic",
+    )
+
+    orig_kafka.send.assert_awaited_once_with(
+        topic="other_topic",
+        value=b'{"key": "value"}',
+        key=b"key",
+        partition=0,
+        timestamp_ms=1,
+        headers=[("Event-Type", b"Test")],
+    )
+
+    assert res == orig_kafka.send.return_value
+
+
+@pytest.mark.usefixtures("orig_kafka")
+async def test_send_event_unexpected_type(producer):
+    with pytest.raises(RuntimeError, match="Unexpected event"):
+        await producer.send_event(
+            event=[],
+            event_type="Test",
+            key=b"key",
+            partition=0,
+            timestamp_ms=1,
+        )
+
+
+async def test_send_event_no_default_topic_provided():
+    producer = EVKafkaProducer(config={"bootstrap_servers": "kafka"})
+    with pytest.raises(RuntimeError, match="No default topic"):
+        await producer.send_event(
+            event=b"{}",
+            event_type="Test",
+            key=b"key",
+            partition=0,
+            timestamp_ms=1,
+        )
