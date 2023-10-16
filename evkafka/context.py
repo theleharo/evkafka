@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Awaitable, Callable
 
 from .state import State
 from .utils import load_json
@@ -8,9 +8,12 @@ from .utils import load_json
 @dataclass
 class MessageCtx:
     key: bytes | None
-    value: Any
+    value: bytes
     headers: tuple[tuple[str, bytes], ...]
-    event_type: str | None
+    event_type: str | None = None
+    decoded_value: dict[
+        Any, Any
+    ] | None = None  # todo maybe callback to decode on demand?
 
 
 @dataclass
@@ -28,6 +31,9 @@ class Context:
     message: MessageCtx
     consumer: ConsumerCtx
     state: dict
+
+
+HandlerType = Callable[[Context], Awaitable[None]]
 
 
 @dataclass
@@ -48,7 +54,11 @@ class Request:
     @property
     def json(self) -> dict[Any, Any]:
         if not hasattr(self, "_json"):
-            self._json = load_json(self.context.message.value)
+            if self.context.message.decoded_value is not None:
+                self._json = self.context.message.decoded_value
+            else:
+                # fallback
+                self._json = load_json(self.context.message.value)
         return self._json
 
     @property

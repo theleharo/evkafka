@@ -20,6 +20,12 @@ def test_load_json():
     assert load_json(j) == {"a": "b"}
 
 
+def test_load_json_dict():
+    j = {"a": "b"}
+
+    assert load_json(j) == {"a": "b"}
+
+
 def test_load_json_bad_json():
     with pytest.raises(UnsupportedValueError, match="Cannot load"):
         load_json(b"not json")

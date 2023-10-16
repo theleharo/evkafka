@@ -9,9 +9,10 @@ from types import FrameType
 
 from .config import ConsumerConfig
 from .consumer import EVKafkaConsumer
-from .context import AppContext, ConsumerCtx, Context, MessageCtx
+from .context import AppContext, ConsumerCtx, Context, HandlerType, MessageCtx
 from .handler import Handler
 from .lifespan import LifespanManager
+from .middleware import Middleware, default_stack
 from .types import Lifespan, Wrapped
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,7 @@ class EVKafkaApp:
         self,
         config: ConsumerConfig | None = None,
         name: str | None = "default",
+        middleware: typing.Sequence[Middleware] | None = None,
         lifespan: Lifespan | None = None,
     ) -> None:
         self.force_exit = False
@@ -43,6 +45,7 @@ class EVKafkaApp:
         self._tasks: set[asyncio.Task[typing.Any]] = set()
         self._consumers: set[EVKafkaConsumer] = set()
         self._app_context = AppContext()
+        self.middleware = middleware or default_stack
         self.lifespan = lifespan
         self._lifespan_manager = LifespanManager(lifespan)
 
@@ -137,7 +140,7 @@ class EVKafkaApp:
     def add_consumer(
         self,
         config: ConsumerConfig,
-        handler: Handler,
+        handler: HandlerType,
         name: str | None = None,
     ) -> None:
         if self._consumers_collected:
@@ -145,20 +148,14 @@ class EVKafkaApp:
                 "Cannot add another consumer after an application has started"
             )
 
-        async def type_middleware(
-            context: Context,
-            app: Handler = handler,
-        ) -> None:
-            for k, v in context.message.headers:
-                if k == "Event-Type":
-                    context.message.event_type = v.decode()
-                    break
-            return await app(context)
+        app = handler
+        for mv in reversed(self.middleware):
+            app = mv.cls(app, **mv.options)
 
         async def messages_cb(
             message_ctx: MessageCtx,
             consumer_ctx: ConsumerCtx,
-            app: typing.Any = type_middleware,
+            app: HandlerType = app,
             app_context: AppContext = self._app_context,
         ) -> None:
             context = Context(

@@ -6,7 +6,10 @@ from typing import Any, Callable
 from evkafka.exceptions import UnsupportedValueError
 
 
-def load_json(value: bytes) -> dict[Any, Any]:
+def load_json(value: bytes | dict[Any, Any]) -> dict[Any, Any]:
+    if isinstance(value, dict):
+        return value
+
     try:
         loaded = json.loads(value)
     except json.decoder.JSONDecodeError as exc:
