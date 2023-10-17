@@ -38,5 +38,5 @@ def ctx(raw_value):
 def req(mocker, decoded_value):
     r = mocker.Mock()
     r.value = b"a"
-    r.json = decoded_value
+    r.json = mocker.AsyncMock(return_value=decoded_value)
     return r

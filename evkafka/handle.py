@@ -29,9 +29,9 @@ class Handle:
             type_ = cast(type, endpoint_deps.payload_param_type)
 
             if type_ is dict:
-                value: Any = request.json
+                value: Any = await request.json()
             elif BaseModel and issubclass(type_, BaseModel):
-                value = type_(**request.json)
+                value = type_(**(await request.json()))
             elif type_ is str:
                 value = request.value.decode()
             elif type_ is bytes:

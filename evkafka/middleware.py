@@ -13,7 +13,7 @@ class Middleware:
         self.options = options
 
 
-class EventTypeHeaderMiddleware:
+class JsonTypedDecoderMiddleware:
     def __init__(self, app: HandlerType, type_header_name: str = "Event-Type") -> None:
         self.app = app
         self.type_header_name = type_header_name
@@ -23,19 +23,14 @@ class EventTypeHeaderMiddleware:
             if k == self.type_header_name:
                 context.message.event_type = v.decode()
                 break
-        await self.app(context)
 
+        async def decode_cb(context: Context = context) -> dict[typing.Any, typing.Any]:
+            return load_json(context.message.value)
 
-class JsonDecoderMiddleware:
-    def __init__(self, app: HandlerType) -> None:
-        self.app = app
-
-    async def __call__(self, context: Context) -> None:
-        context.message.decoded_value = load_json(context.message.value)
+        context.message.decoded_value_cb = decode_cb
         await self.app(context)
 
 
 default_stack = [
-    Middleware(EventTypeHeaderMiddleware),
-    Middleware(JsonDecoderMiddleware),
+    Middleware(JsonTypedDecoderMiddleware),
 ]

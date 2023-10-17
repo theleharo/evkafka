@@ -13,8 +13,17 @@ def test_request_headers(req):
     assert req.headers == {"Event-Type": b"EventType"}
 
 
-def test_request_json(req):
-    assert req.json == {"a": "b"}
+async def test_request_json_fallback(req):
+    assert await req.json() == {"a": "b"}
+
+
+async def test_request_json_decoded_value_cb(req):
+    async def cb():
+        return {"c": "d"}
+
+    req.context.message.decoded_value_cb = cb
+
+    assert await req.json() == {"c": "d"}
 
 
 def test_request_key(req):

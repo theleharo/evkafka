@@ -31,7 +31,7 @@ def exp_ctx(send_event):
                 ("Event-Type", send_event["event_type"].encode()),
             ),
             event_type="Event",
-            decoded_value={"a": "b"},
+            decoded_value_cb=mock.ANY,
         ),
         consumer=ConsumerCtx(
             group_id="group",

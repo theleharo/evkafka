@@ -11,9 +11,7 @@ class MessageCtx:
     value: bytes
     headers: tuple[tuple[str, bytes], ...]
     event_type: str | None = None
-    decoded_value: dict[
-        Any, Any
-    ] | None = None  # todo maybe callback to decode on demand?
+    decoded_value_cb: Callable[[], Awaitable[dict[Any, Any]]] | None = None
 
 
 @dataclass
@@ -51,11 +49,10 @@ class Request:
             self._headers = dict(self.context.message.headers)
         return self._headers
 
-    @property
-    def json(self) -> dict[Any, Any]:
+    async def json(self) -> dict[Any, Any]:
         if not hasattr(self, "_json"):
-            if self.context.message.decoded_value is not None:
-                self._json = self.context.message.decoded_value
+            if self.context.message.decoded_value_cb is not None:
+                self._json = await self.context.message.decoded_value_cb()
             else:
                 # fallback
                 self._json = load_json(self.context.message.value)

@@ -18,6 +18,8 @@ a header `Event-Type` must be supplied alongside with a message at the producer 
 As soon as the endpoint is found it gets called with the event value. 
 Unmatched events are silently skipped.
 
+> **Note:** Event type header name may be overriden, see [Middleware](middleware.md).
+
 ## Endpoint payload types
 
 A payload type is defined by an endpoint argument's typing. Evkafka supports 
