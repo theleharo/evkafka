@@ -1,4 +1,4 @@
-### latest
+### 0.3.0 (2023-10-17)
 
 **Added**:
  - Message decode logic is moved to a middleware
