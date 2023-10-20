@@ -1,7 +1,7 @@
 import logging
 import typing
 
-from evkafka.context import Context, HandlerType
+from evkafka.context import Context, HandlerApp
 from evkafka.utils import load_json
 
 logger = logging.getLogger(__name__)
@@ -14,7 +14,7 @@ class Middleware:
 
 
 class JsonTypedDecoderMiddleware:
-    def __init__(self, app: HandlerType, type_header_name: str = "Event-Type") -> None:
+    def __init__(self, app: HandlerApp, type_header_name: str = "Event-Type") -> None:
         self.app = app
         self.type_header_name = type_header_name
 

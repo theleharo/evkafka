@@ -9,7 +9,7 @@ from types import FrameType
 
 from .config import ConsumerConfig
 from .consumer import EVKafkaConsumer
-from .context import AppContext, ConsumerCtx, Context, HandlerType, MessageCtx
+from .context import AppContext, ConsumerCtx, Context, HandlerApp, MessageCtx
 from .handler import Handler
 from .lifespan import LifespanManager
 from .middleware import Middleware, default_stack
@@ -140,7 +140,7 @@ class EVKafkaApp:
     def add_consumer(
         self,
         config: ConsumerConfig,
-        handler: HandlerType,
+        handler: HandlerApp,
         name: str | None = None,
     ) -> None:
         if self._consumers_collected:
@@ -155,7 +155,7 @@ class EVKafkaApp:
         async def messages_cb(
             message_ctx: MessageCtx,
             consumer_ctx: ConsumerCtx,
-            app: HandlerType = app,
+            app: HandlerApp = app,
             app_context: AppContext = self._app_context,
         ) -> None:
             context = Context(

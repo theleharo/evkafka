@@ -31,7 +31,7 @@ class Context:
     state: dict
 
 
-HandlerType = Callable[[Context], Awaitable[None]]
+HandlerApp = Callable[[Context], Awaitable[None]]
 
 
 @dataclass
