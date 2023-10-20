@@ -53,7 +53,7 @@ disallow_untyped_decorators = true
 
 [[tool.mypy.overrides]]
 module = [
-    "aiokafka",
+    "aiokafka", "kafka"
 ]
 ignore_missing_imports = true
 

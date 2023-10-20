@@ -1,4 +1,5 @@
 import asyncio
+from unittest import mock
 
 import pytest
 from aiokafka import ConsumerRecord, ConsumerStoppedError
@@ -60,7 +61,7 @@ async def test_consumer_excludes_topics_from_config(
 ):
     EVKafkaConsumer(config=config, messages_cb=messages_cb)
     config.pop("topics")
-    aio_consumer_cls.assert_called_once_with(**config)
+    aio_consumer_cls.assert_called_once_with(**config, enable_auto_commit=True)
 
 
 async def test_consumer_sets_client_id_if_not_supplied(
@@ -69,7 +70,27 @@ async def test_consumer_sets_client_id_if_not_supplied(
     config.pop("client_id")
     EVKafkaConsumer(config=config, messages_cb=messages_cb)
     config.pop("topics")
-    aio_consumer_cls.assert_called_once_with(**{**config, "client_id": "evkafka"})
+    aio_consumer_cls.assert_called_once_with(
+        **config, client_id="evkafka", enable_auto_commit=True
+    )
+
+
+async def test_consumer_sets_pre_commit_mode(aio_consumer_cls, config, messages_cb):
+    EVKafkaConsumer(
+        config=dict(**config, auto_commit_mode="pre-commit"), messages_cb=messages_cb
+    )
+
+    config.pop("topics")
+    aio_consumer_cls.assert_called_once_with(**config, enable_auto_commit=True)
+
+
+async def test_consumer_sets_post_commit_mode(aio_consumer_cls, config, messages_cb):
+    EVKafkaConsumer(
+        config=dict(**config, auto_commit_mode="post-commit"), messages_cb=messages_cb
+    )
+
+    config.pop("topics")
+    aio_consumer_cls.assert_called_once_with(**config, enable_auto_commit=False)
 
 
 async def test_consumer_starts_and_stops(aio_consumer, config, messages_cb):
@@ -79,7 +100,7 @@ async def test_consumer_starts_and_stops(aio_consumer, config, messages_cb):
     await c.shutdown()
 
     aio_consumer.start.assert_awaited_once()
-    aio_consumer.subscribe.assert_called_once_with(["topic"])
+    aio_consumer.subscribe.assert_called_once_with(["topic"], listener=mock.ANY)
     aio_consumer.stop.assert_awaited_once()
 
 

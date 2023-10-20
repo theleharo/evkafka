@@ -11,8 +11,6 @@ class ConsumerConfig(TypedDict, total=False):
     bootstrap_servers: str | list[str]
     client_id: str
     group_id: str | None
-    key_deselializer: Callable
-    value_deselializer: Callable
     fetch_min_bytes: int
     fetch_max_bytes: int
     fetch_max_wait_ms: int
@@ -21,7 +19,7 @@ class ConsumerConfig(TypedDict, total=False):
     request_timeout_ms: int
     retry_backoff_ms: int
     auto_offset_reset: str
-    enable_auto_commit: bool
+    auto_commit_mode: str
     auto_commit_interval_ms: int
     check_crcs: bool
     metadata_max_age_ms: int

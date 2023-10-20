@@ -1,3 +1,8 @@
+### latest
+
+**Removed**
+ - `enable_auto_commit` from consumer config
+
 ### 0.3.0 (2023-10-17)
 
 **Added**:
