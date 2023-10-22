@@ -1,20 +1,37 @@
 # Consumers
 
+
 ## Consumer configuration
-Consumer configuration is a simple dictionary containing consumer settings.
+
+Consumer configuration is a dictionary containing consumer settings.
 ```python
-config = {
+from evkafka.config import ConsumerConfig
+
+config: ConsumerConfig = {
     "topics": ["topic"],
     "bootstrap_servers": "kafka:9092",
     "group_id": "test",
 }
 ```
-The framework is built around [aiokafka](https://aiokafka.readthedocs.io/en/stable/). For full list of options 
-check the lib's [AIOKafkaConsumer documentation](https://aiokafka.readthedocs.io/en/stable/api.html#consumer-class).
 
-> **Note:** EVKafka consumer is currently able to work only in autocommit mode with
-> at most once delivery semantic.
+The framework is built around [aiokafka](https://aiokafka.readthedocs.io/en/stable/). Many configuration options are derived straight
+from the lib's settings which can be found at [AIOKafkaConsumer documentation](https://aiokafka.readthedocs.io/en/stable/api.html#consumer-class). 
 
+> **Note:** EVKafka consumer always works in autocommit mode so `enable_auto_commit` parameter is not used.
+
+### Delivery semantic
+EVKafka allow to choose when to commit offsets. You can select either 
+"at most once delivery" or "at least once delivery". The strategy 
+is configured by `auto_commit_mode` parameter.
+
+#### At most once delivery: pre-commit
+This is the default strategy when `auto_commit_mode` is omitted in config. Offset is scheduled for commit
+as soon as a message is received by a consumer. `AIOKafkaConsumer` auto commit implementation is used. 
+If subsequent event processing fails, the message may be lost.
+
+#### At least once delivery: post-commit
+ 
+**TBD**
 
 ## Parallel consumers
 Sometimes you want to consume messages from different kafka instances, e.g. you're making 
