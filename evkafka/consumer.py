@@ -28,7 +28,9 @@ class RebalanceListener(ConsumerRebalanceListener):
     async def on_partitions_revoked(self, revoked: list[TopicPartition]) -> None:
         await self.on_rebalance_cb()
 
-    async def on_partitions_assigned(self, assigned: list[TopicPartition]) -> None:
+    async def on_partitions_assigned(
+        self, assigned: list[TopicPartition]
+    ) -> None:  # pragma: no cover
         pass
 
 
@@ -62,20 +64,19 @@ class EVKafkaConsumer:
 
         if self._auto_commit_mode == "pre-commit":
             config_extra["enable_auto_commit"] = True
-            self._bg_commit_interval_ms = loop_interval_ms
+            self._bg_commit_interval = loop_interval_ms / 1000
         else:
             config_extra["enable_auto_commit"] = False
-            self._bg_commit_interval_ms = config.pop("auto_commit_interval_ms", 5000)
-
-        self._next_wake_at = (
-            time.monotonic()
-            + min(self._loop_interval_ms, self._bg_commit_interval_ms) / 1000.0
-        )
+            self._bg_commit_interval = (
+                config.pop("auto_commit_interval_ms", 5000) / 1000
+            )
+        self._next_commit_at = time.monotonic() + self._bg_commit_interval
 
         self._main_loop: Task[typing.Any] = None  # type: ignore[assignment]
         self._rebalance_lock = asyncio.Lock()
         self._shutdown = asyncio.get_running_loop().create_future()
         self._consumer = AIOKafkaConsumer(**config, **config_extra)
+        self._stored_offsets: dict[TopicPartition, int] = {}
 
     def startup(self) -> Task[typing.Any]:
         def shutdown_log_cb(future: Future[typing.Awaitable[None]]) -> None:
@@ -95,65 +96,72 @@ class EVKafkaConsumer:
             self._topics, listener=RebalanceListener(self.on_rebalance)
         )
         try:
-            next_wake_in = min(self._loop_interval_ms, self._bg_commit_interval_ms)
+            next_wake_in = await self.run_bg_commit()
             while not self._shutdown.done():
                 tp_messages = await self._consumer.getmany(
                     timeout_ms=next_wake_in, max_records=self._batch_max_size
                 )
                 if tp_messages:
-                    messages = list(chain.from_iterable(tp_messages.values()))
                     async with self._rebalance_lock:
-                        await self.process_messages(messages)
-                next_wake_in = await self._bg_tasks()
+                        messages = list(chain.from_iterable(tp_messages.values()))
+                        for message in messages:
+                            await self._process_message(message)
+                            self._store_offset(message)
+                next_wake_in = await self.run_bg_commit()
 
         except ConsumerStoppedError:
             pass
         finally:
-            await self._commit()
+            await self.commit()
             await self._consumer.stop()
 
-    async def process_messages(self, messages: list[ConsumerRecord]) -> None:
-        for message in messages:
-            m_ctx = MessageCtx(
-                key=message.key,
-                value=message.value,
-                headers=tuple(message.headers),
-                event_type=None,
-            )
-            c_ctx = ConsumerCtx(
-                group_id=self._group_id,
-                client_id=self._client_id,
-                topic=message.topic,
-                partition=message.partition,
-                offset=message.partition,
-                timestamp=message.timestamp,
-            )
-            await self._messages_cb(m_ctx, c_ctx)
-            await self._store_post_commit_offset(message)
+    async def _process_message(self, message: ConsumerRecord) -> None:
+        m_ctx = MessageCtx(
+            key=message.key,
+            value=message.value,
+            headers=tuple(message.headers),
+            event_type=None,
+        )
+        c_ctx = ConsumerCtx(
+            group_id=self._group_id,
+            client_id=self._client_id,
+            topic=message.topic,
+            partition=message.partition,
+            offset=message.partition,
+            timestamp=message.timestamp,
+        )
+        await self._messages_cb(m_ctx, c_ctx)
 
-    async def _bg_tasks(self) -> int:
+    async def run_bg_commit(self) -> int:
         if self._auto_commit_mode == "pre-commit":
             return self._loop_interval_ms
 
-        # TODO maybe call _commit and calc next wake time
-        return self._loop_interval_ms
+        now = time.monotonic()
+        if now > self._next_commit_at:
+            await self.commit()
+            self._next_commit_at = now + self._bg_commit_interval
+
+        next_commit_in = max(0, self._next_commit_at - time.monotonic())
+        return int(min(next_commit_in * 1000, self._loop_interval_ms))
 
     async def on_rebalance(self) -> None:
         async with self._rebalance_lock:
             pass
-        await self._commit()
+        await self.commit()
 
-    async def _store_post_commit_offset(self, message: ConsumerRecord) -> None:
+    def _store_offset(self, message: ConsumerRecord) -> None:
         if self._auto_commit_mode == "pre-commit":
             return
+        topic_partition = TopicPartition(message.topic, message.partition)
+        self._stored_offsets[topic_partition] = message.offset + 1
 
-        # TODO store locally
-
-    async def _commit(self) -> None:
+    async def commit(self) -> None:
         if self._auto_commit_mode == "pre-commit":
             return
-
-        # TODO send stored commits
+        if self._stored_offsets:
+            logger.debug("Commit %s", self._stored_offsets)
+            offsets, self._stored_offsets = self._stored_offsets, {}
+            await self._consumer.commit(offsets)
 
     async def shutdown(self) -> None:
         if self._shutdown.done():
