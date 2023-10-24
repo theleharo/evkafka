@@ -9,7 +9,7 @@ from evkafka.state import State
 from tests.utils import TestConsumer
 
 
-@pytest.fixture
+@pytest.fixture()
 def mocked_consumer(mocker):
     c = mocker.patch("evkafka.app.EVKafkaConsumer")
 
@@ -38,11 +38,11 @@ async def run_app(app):
 
 
 @pytest.mark.usefixtures("mocked_consumer")
-async def test_default_consumer_is_added_to_configs(ctx, decoded_value):
+async def test_default_consumer_is_added_to_configs():
     app = EVKafkaApp(config={"some": "conf"}, name="some")
 
     @app.event("EventType")
-    def handler(e: dict):
+    def handler(e: dict):  # noqa: ARG001
         pass
 
     async with run_app(app):
@@ -91,7 +91,7 @@ async def test_consumer_cannot_be_added_after_start():
     h = Handler()
 
     @h.event("EventType")
-    def handler(e: dict):
+    def handler(e: dict):  # noqa: ARG001
         pass
 
     app.add_consumer(config={"some": "conf"}, handler=h)
@@ -101,13 +101,13 @@ async def test_consumer_cannot_be_added_after_start():
             app.add_consumer(config={"some": "conf"}, handler=h)
 
 
-async def test_app_exits_on_any_consumer_error(mocked_consumer, ctx, decoded_value):
+async def test_app_exits_on_any_consumer_error(mocked_consumer):
     app = EVKafkaApp()
 
     h = Handler()
 
     @h.event("EventType")
-    def handler(e: dict):
+    def handler(e: dict):  # noqa: ARG001
         pass
 
     app.add_consumer(config={"some": "conf"}, handler=h)
@@ -181,7 +181,7 @@ async def test_app_lifespan_skips_shutdown_on_forced_exit():
     assert not stopped
 
 
-async def test_handler_got_state(mocked_consumer, ctx, decoded_value):
+async def test_handler_got_state(mocked_consumer, ctx):
     @asynccontextmanager
     async def lifespan():
         yield {"life": "span"}
@@ -190,7 +190,7 @@ async def test_handler_got_state(mocked_consumer, ctx, decoded_value):
     app = EVKafkaApp(config={"some": "conf"}, lifespan=lifespan)
 
     @app.event("EventType")
-    def handler(e: dict, r: Request):
+    def handler(e: dict, r: Request):  # noqa: ARG001
         nonlocal state
         state = r.state
 

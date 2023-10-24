@@ -3,18 +3,18 @@ import pytest
 from evkafka import Handler
 
 
-@pytest.fixture
+@pytest.fixture()
 def handler():
     return Handler()
 
 
-@pytest.fixture
+@pytest.fixture()
 def handle(mocker):
     return mocker.patch("evkafka.handler.Handle")
 
 
 def test_handler_add_event(handler, handle):
-    def h(e: dict):
+    def h(e: dict):  # noqa: ARG001
         pass
 
     handler.event("ev")(h)
@@ -25,7 +25,7 @@ def test_handler_add_event(handler, handle):
 
 
 def test_handler_add_event_with_the_same_name_raises(handler, handle):
-    def h(e: dict):
+    def h(e: dict):  # noqa: ARG001
         pass
 
     handler.event("ev")(h)
@@ -36,10 +36,10 @@ def test_handler_add_event_with_the_same_name_raises(handler, handle):
 
 
 def test_handler_include_handler(handler):
-    def ev(e: dict):
+    def ev(e: dict):  # noqa: ARG001
         pass
 
-    def ev2(e: dict):
+    def ev2(e: dict):  # noqa: ARG001
         pass
 
     handler.event("ev")(ev)
@@ -54,12 +54,12 @@ def test_handler_include_handler(handler):
     assert handler.handles[1] != sub_h.handles[0]
 
 
-@pytest.mark.parametrize("name,exp_called", [("test", True), ("ev", False)])
+@pytest.mark.parametrize(("name", "exp_called"), [("test", True), ("ev", False)])
 async def test_int_handler_call_matched(ctx, handler, name, exp_called):
     called = False
 
     @handler.event(name)
-    def h(e: dict):
+    def h(e: dict):  # noqa: ARG001
         nonlocal called
         called = True
 

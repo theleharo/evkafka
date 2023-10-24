@@ -35,17 +35,24 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 include = ["evkafka"]  # ["*"] by default
 
-[tool.ruff]
+[tool.ruff.lint]
 select = [
+    "ARG",
     "B",
     "C",
+    "C4",
     "E",
     "F",
     "I",
+    "PL",
+    "PT",
     "T",
     "W",
 ]
-ignore = ["E501"]
+ignore = ["E501", "PLR2004"]
+
+[tool.ruff.pylint]
+max-args = 10
 
 [tool.mypy]
 disallow_untyped_defs = true

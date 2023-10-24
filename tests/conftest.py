@@ -3,17 +3,17 @@ import pytest
 from evkafka.context import ConsumerCtx, Context, MessageCtx
 
 
-@pytest.fixture
+@pytest.fixture()
 def raw_value():
     return b'{"a":"b"}'
 
 
-@pytest.fixture
+@pytest.fixture()
 def decoded_value():
     return {"a": "b"}
 
 
-@pytest.fixture
+@pytest.fixture()
 def ctx(raw_value):
     return Context(
         message=MessageCtx(
@@ -34,7 +34,7 @@ def ctx(raw_value):
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def req(mocker, decoded_value):
     r = mocker.Mock()
     r.value = b"a"

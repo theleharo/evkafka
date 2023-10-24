@@ -25,7 +25,9 @@ class RebalanceListener(ConsumerRebalanceListener):
     ) -> None:
         self.on_rebalance_cb = on_rebalance_cb
 
-    async def on_partitions_revoked(self, revoked: list[TopicPartition]) -> None:
+    async def on_partitions_revoked(
+        self, revoked: list[TopicPartition]  # noqa: ARG002
+    ) -> None:
         await self.on_rebalance_cb()
 
     async def on_partitions_assigned(

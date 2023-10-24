@@ -6,12 +6,14 @@ from evkafka.dependencies import EndpointDependencies
 from evkafka.handle import Handle
 
 
-@pytest.fixture
+@pytest.fixture()
 def get_deps(mocker):
     return mocker.patch("evkafka.handle.get_dependencies")
 
 
-@pytest.mark.parametrize("typ,exp_val", [(str, "a"), (bytes, b"a"), (dict, {"a": "b"})])
+@pytest.mark.parametrize(
+    ("typ", "exp_val"), [(str, "a"), (bytes, b"a"), (dict, {"a": "b"})]
+)
 async def test_handle_event_with_simple_type(typ, exp_val, req, get_deps):
     async def ep(e):
         return e
@@ -67,10 +69,10 @@ async def test_handle_event_has_unsupported_type(req, get_deps):
 
 
 @pytest.mark.parametrize(
-    "event_type,is_match", [("event", True), ("other", False), (None, False)]
+    ("event_type", "is_match"), [("event", True), ("other", False), (None, False)]
 )
 def test_match(mocker, event_type, is_match):
-    def ep(e: str):
+    def ep(e: str):  # noqa: ARG001
         pass
 
     h = Handle("event", ep)

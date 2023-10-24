@@ -35,7 +35,7 @@ def get_dependencies(endpoint: F) -> EndpointDependencies:
         ), f'Untyped parameter "{param_name}" for endpoint "{endpoint.__name__}"'
 
         if get_origin(param_type) is dict:
-            param_type = dict
+            param_type = dict  # noqa: PLW2901
 
         if issubclass(param_type, Request):
             assert request_param_name is None, "Only one Request parameter is expected"

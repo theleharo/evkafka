@@ -9,7 +9,8 @@ lint:
 		mypy evkafka
 
 test:
-		pytest ./
+		pytest
+		pytest --dead-fixtures
 
 check: format lint test
 

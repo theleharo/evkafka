@@ -4,7 +4,7 @@ from evkafka.context import Request
 from evkafka.state import State
 
 
-@pytest.fixture
+@pytest.fixture()
 def req(ctx):
     return Request(ctx)
 

@@ -7,7 +7,7 @@ from evkafka import EVKafkaApp, Handler, TestClient
 from evkafka.context import ConsumerCtx, Context, MessageCtx, Request
 
 
-@pytest.fixture
+@pytest.fixture()
 def send_event():
     return {
         "topic": "topic",
@@ -20,7 +20,7 @@ def send_event():
     }
 
 
-@pytest.fixture
+@pytest.fixture()
 def exp_ctx(send_event):
     return Context(
         message=MessageCtx(
@@ -45,7 +45,7 @@ def exp_ctx(send_event):
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def default_app(exp_ctx):
     app = EVKafkaApp(
         config={"topics": ["topic"], "group_id": "group", "client_id": "client"},
@@ -66,7 +66,7 @@ def default_app(exp_ctx):
     assert ctx == exp_ctx
 
 
-@pytest.fixture
+@pytest.fixture()
 def app(exp_ctx):
     app = EVKafkaApp()
     h = Handler()
@@ -92,7 +92,7 @@ def app(exp_ctx):
     assert ctx == exp_ctx
 
 
-@pytest.fixture
+@pytest.fixture()
 def lifespan(mocker):
     start = mocker.AsyncMock()
     stop = mocker.AsyncMock()
@@ -134,7 +134,7 @@ def test_client_send_event_to_unknown_consumer(send_event):
     app = EVKafkaApp(config={"topics": ["topic"]}, name="default")
 
     @app.event("Event")
-    def handle_event(e: bytes) -> None:
+    def handle_event(e: bytes):  # noqa: ARG001
         pass
 
     with pytest.raises(AssertionError, match="Consumer with name"):
@@ -146,7 +146,7 @@ def test_client_send_event_too_many_consumers(send_event):
     h = Handler()
 
     @h.event("Event")
-    async def handle_event(e: bytes) -> None:
+    async def handle_event(e: bytes):  # noqa: ARG001
         pass
 
     app = EVKafkaApp()

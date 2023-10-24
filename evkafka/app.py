@@ -70,7 +70,7 @@ class EVKafkaApp:
         for sig in (signal.SIGINT, signal.SIGTERM):
             loop.add_signal_handler(sig, self.handle_exit, sig, None)
 
-    def handle_exit(self, sig: int, frame: FrameType | None) -> None:
+    def handle_exit(self, sig: int, frame: FrameType | None) -> None:  # noqa: ARG002
         if self.should_exit and sig == signal.SIGINT:
             self.force_exit = True
         else:

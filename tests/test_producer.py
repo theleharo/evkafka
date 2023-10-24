@@ -4,13 +4,13 @@ from aiokafka import AIOKafkaProducer
 from evkafka import EVKafkaProducer
 
 
-@pytest.fixture
+@pytest.fixture()
 def orig_kafka(mocker):
     kafka = mocker.patch("evkafka.producer.AIOKafkaProducer", spec=AIOKafkaProducer)
     return kafka.return_value
 
 
-@pytest.fixture
+@pytest.fixture()
 def producer():
     return EVKafkaProducer(config={"bootstrap_servers": "kafka", "topic": "topic"})
 
@@ -42,7 +42,7 @@ async def test_cm(orig_kafka, producer):
 
 
 @pytest.mark.parametrize(
-    "headers, exp_headers",
+    ("headers", "exp_headers"),
     [
         ({"Header": b"value"}, [("Header", b"value"), ("Event-Type", b"Test")]),
         ({}, [("Event-Type", b"Test")]),
