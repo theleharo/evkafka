@@ -58,7 +58,7 @@ class EVKafkaConsumer:
             self._client_id = "evkafka"
             config_extra["client_id"] = self._client_id
 
-        self._auto_commit_mode = config.pop("auto_commit_mode", "pre-commit")
+        self._auto_commit_mode = config.pop("auto_commit_mode", "post-commit")
         assert self._auto_commit_mode in [
             "pre-commit",
             "post-commit",

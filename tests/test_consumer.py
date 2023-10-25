@@ -37,11 +37,17 @@ def config():
 
 
 @pytest.fixture()
-def config_pc():
+def config_pre(config):
     return {
-        "bootstrap_servers": "kafka:9092",
-        "topics": ["topic"],
-        "client_id": "client_id",
+        **config,
+        "auto_commit_mode": "pre-commit",
+    }
+
+
+@pytest.fixture()
+def config_post(config):
+    return {
+        **config,
         "auto_commit_mode": "post-commit",
     }
 
@@ -93,7 +99,7 @@ async def test_consumer_excludes_topics_from_config(
 ):
     EVKafkaConsumer(config=config, messages_cb=messages_cb)
     config.pop("topics")
-    aio_consumer_cls.assert_called_once_with(**config, enable_auto_commit=True)
+    aio_consumer_cls.assert_called_once_with(**config, enable_auto_commit=False)
 
 
 async def test_consumer_sets_client_id_if_not_supplied(
@@ -103,7 +109,7 @@ async def test_consumer_sets_client_id_if_not_supplied(
     EVKafkaConsumer(config=config, messages_cb=messages_cb)
     config.pop("topics")
     aio_consumer_cls.assert_called_once_with(
-        **config, client_id="evkafka", enable_auto_commit=True
+        **config, client_id="evkafka", enable_auto_commit=False
     )
 
 
@@ -125,9 +131,9 @@ async def test_consumer_sets_post_commit_mode(aio_consumer_cls, config, messages
     aio_consumer_cls.assert_called_once_with(**config, enable_auto_commit=False)
 
 
-async def test_consumer_starts_and_stops(mocker, aio_consumer, config, messages_cb):
+async def test_consumer_starts_and_stops(mocker, aio_consumer, config_pre, messages_cb):
     rebalance_cls = mocker.patch("evkafka.consumer.RebalanceListener")
-    c = EVKafkaConsumer(config=config, messages_cb=messages_cb)
+    c = EVKafkaConsumer(config=config_pre, messages_cb=messages_cb)
 
     c.startup()
     await c.shutdown()
@@ -142,8 +148,8 @@ async def test_consumer_starts_and_stops(mocker, aio_consumer, config, messages_
 
 
 @pytest.mark.usefixtures("_getmany_returns_record_and_stops")
-async def test_consumer_calls_handler_for_messages(config, messages_cb):
-    c = EVKafkaConsumer(config=config, messages_cb=messages_cb)
+async def test_consumer_calls_handler_for_messages(config_pre, messages_cb):
+    c = EVKafkaConsumer(config=config_pre, messages_cb=messages_cb)
 
     t = c.startup()
     await asyncio.wait([t])  # consumer stops due to _getmany... fixture
@@ -165,10 +171,10 @@ async def test_consumer_calls_handler_for_messages(config, messages_cb):
 
 @pytest.mark.usefixtures("_getmany_returns_record_and_stops")
 async def test_consumer_propagates_handling_exception(
-    aio_consumer, config, messages_cb
+    aio_consumer, config_pre, messages_cb
 ):
     messages_cb.side_effect = TypeError
-    c = EVKafkaConsumer(config=config, messages_cb=messages_cb)
+    c = EVKafkaConsumer(config=config_pre, messages_cb=messages_cb)
 
     t = c.startup()
     done, _ = await asyncio.wait([t])
@@ -180,9 +186,9 @@ async def test_consumer_propagates_handling_exception(
 
 @pytest.mark.usefixtures("_getmany_returns_record_and_stops")
 async def test_consumer_calls_commit_at_exit(
-    aio_consumer, config_pc, messages_cb, record
+    aio_consumer, config_post, messages_cb, record
 ):
-    c = EVKafkaConsumer(config=config_pc, messages_cb=messages_cb)
+    c = EVKafkaConsumer(config=config_post, messages_cb=messages_cb)
 
     t = c.startup()
     await asyncio.wait([t])
@@ -193,14 +199,14 @@ async def test_consumer_calls_commit_at_exit(
 
 
 async def test_consumer_commits_latest_at_exit(
-    aio_consumer, config_pc, messages_cb, record, record2
+    aio_consumer, config_post, messages_cb, record, record2
 ):
     aio_consumer.getmany.side_effect = [
         {TopicPartition(record.topic, record.partition): [record]},
         {TopicPartition(record2.topic, record2.partition): [record2]},
         ConsumerStoppedError,
     ]
-    c = EVKafkaConsumer(config=config_pc, messages_cb=messages_cb)
+    c = EVKafkaConsumer(config=config_post, messages_cb=messages_cb)
 
     t = c.startup()
     await asyncio.wait([t])
@@ -211,15 +217,15 @@ async def test_consumer_commits_latest_at_exit(
 
 
 async def test_consumer_immediate_commits(
-    aio_consumer, config_pc, messages_cb, record, record2
+    aio_consumer, config_post, messages_cb, record, record2
 ):
-    config_pc["auto_commit_interval_ms"] = 0
+    config_post["auto_commit_interval_ms"] = 0
     aio_consumer.getmany.side_effect = [
         {TopicPartition(record.topic, record.partition): [record]},
         {TopicPartition(record2.topic, record2.partition): [record2]},
         ConsumerStoppedError,
     ]
-    c = EVKafkaConsumer(config=config_pc, messages_cb=messages_cb)
+    c = EVKafkaConsumer(config=config_post, messages_cb=messages_cb)
 
     t = c.startup()
     await asyncio.wait([t])
@@ -234,11 +240,11 @@ async def test_consumer_immediate_commits(
     )
 
 
-async def test_run_bg_commit_before_time(mocker, config_pc, messages_cb, commit):
+async def test_run_bg_commit_before_time(mocker, config_post, messages_cb, commit):
     monotonic = mocker.patch("evkafka.consumer.time.monotonic", return_value=1234)
-    config_pc["auto_commit_interval_ms"] = 2000
+    config_post["auto_commit_interval_ms"] = 2000
     c = EVKafkaConsumer(
-        config=config_pc,
+        config=config_post,
         messages_cb=messages_cb,
         loop_interval_ms=10000,
         batch_max_size=1,
@@ -251,12 +257,12 @@ async def test_run_bg_commit_before_time(mocker, config_pc, messages_cb, commit)
 
 
 async def test_run_bg_commit_before_time_long_autocommit_period(
-    mocker, config_pc, messages_cb, commit
+    mocker, config_post, messages_cb, commit
 ):
     monotonic = mocker.patch("evkafka.consumer.time.monotonic", return_value=1234)
-    config_pc["auto_commit_interval_ms"] = 2000
+    config_post["auto_commit_interval_ms"] = 2000
     c = EVKafkaConsumer(
-        config=config_pc,
+        config=config_post,
         messages_cb=messages_cb,
         loop_interval_ms=500,
         batch_max_size=1,
@@ -268,11 +274,11 @@ async def test_run_bg_commit_before_time_long_autocommit_period(
     commit.assert_not_awaited()
 
 
-async def test_run_bg_commit_after_time(mocker, config_pc, messages_cb, commit):
+async def test_run_bg_commit_after_time(mocker, config_post, messages_cb, commit):
     monotonic = mocker.patch("evkafka.consumer.time.monotonic", return_value=1234)
-    config_pc["auto_commit_interval_ms"] = 2000
+    config_post["auto_commit_interval_ms"] = 2000
     c = EVKafkaConsumer(
-        config=config_pc,
+        config=config_post,
         messages_cb=messages_cb,
         loop_interval_ms=10000,
         batch_max_size=1,
@@ -284,8 +290,8 @@ async def test_run_bg_commit_after_time(mocker, config_pc, messages_cb, commit):
     commit.assert_awaited_once()
 
 
-async def test_on_rebalance(config_pc, messages_cb, commit):
-    c = EVKafkaConsumer(config=config_pc, messages_cb=messages_cb)
+async def test_on_rebalance(config_post, messages_cb, commit):
+    c = EVKafkaConsumer(config=config_post, messages_cb=messages_cb)
 
     await c.on_rebalance()
 
@@ -302,7 +308,7 @@ async def test_rebalance_listener(mocker):
 
 
 @pytest.mark.usefixtures("_getmany_returns_record_and_stops")
-async def test_rebalance_waits_for_message_processing(config_pc, commit):
+async def test_rebalance_waits_for_message_processing(config_post, commit):
     cb_in_progress = asyncio.Event()
     continue_cb = asyncio.Event()
 
@@ -310,7 +316,7 @@ async def test_rebalance_waits_for_message_processing(config_pc, commit):
         cb_in_progress.set()
         await continue_cb.wait()
 
-    c = EVKafkaConsumer(config=config_pc, messages_cb=cb, loop_interval_ms=1)
+    c = EVKafkaConsumer(config=config_post, messages_cb=cb, loop_interval_ms=1)
     c.startup()
 
     # ensure cb has taken a lock
@@ -333,10 +339,10 @@ async def test_rebalance_waits_for_message_processing(config_pc, commit):
 
 
 async def test_consumer_does_not_commit_on_exception(
-    aio_consumer, config_pc, messages_cb
+    aio_consumer, config_post, messages_cb
 ):
     aio_consumer.getmany.side_effect = [Exception]
-    c = EVKafkaConsumer(config=config_pc, messages_cb=messages_cb)
+    c = EVKafkaConsumer(config=config_post, messages_cb=messages_cb)
 
     t = c.startup()
     await asyncio.wait([t])
