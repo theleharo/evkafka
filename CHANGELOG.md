@@ -1,5 +1,8 @@
 ### latest
 
+**Added**
+ - `pre-commit` and `post-commit` consumer mode 
+
 **Removed**
  - `enable_auto_commit` from consumer config
 
