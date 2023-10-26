@@ -24,14 +24,18 @@ EVKafka allow to choose when to commit offsets. You can select either
 "at most once delivery" or "at least once delivery". The strategy 
 is configured by `auto_commit_mode` parameter.
 
-#### At most once delivery: pre-commit
-This is the default strategy when `auto_commit_mode` is omitted in config. Offset is scheduled for commit
-as soon as a message is received by a consumer. `AIOKafkaConsumer` auto commit implementation is used. 
-If subsequent event processing fails, the message may be lost.
-
 #### At least once delivery: post-commit
- 
-**TBD**
+This is the default strategy when `auto_commit_mode` is omitted in config or when it explicitly set to `post-commit`.
+Offsets are committed only after a message is processed by a handler or skipped if no suitable handler found. 
+If event processing fails the message will be read and processed again. 
+
+> **Note:** Make sure that your processing is idempotent.
+
+#### At most once delivery: pre-commit
+The strategy may be set by assigning `auto_commit_mode="pre-commit"`.
+Offset is scheduled for commit as soon as a message is received by a consumer. `AIOKafkaConsumer` auto commit 
+implementation is used. If subsequent event processing fails, the message may be lost.
+
 
 ## Parallel consumers
 Sometimes you want to consume messages from different kafka instances, e.g. you're making 

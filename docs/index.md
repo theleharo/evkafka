@@ -3,11 +3,18 @@
 Handle kafka events easy.
 
 **EVKafka** is a small framework for building event driven microservices 
-with Apache Kafka and Python. It is based upon 
-[aiokafka](https://aiokafka.readthedocs.io/en/stable/) and inspired
-by wonderful [FastAPI](https://fastapi.tiangolo.com/).
+with Apache Kafka and Python. It is based on asynchronous kafka client library 
+[aiokafka](https://aiokafka.readthedocs.io/en/stable/).
 
 Focus on event handling and the framework takes the rest.
+
+## Features
+
+- Easy to start and use
+- Sync/async handlers are supported
+- Extensible through consumer middleware
+- Lifespan
+- At-Least-Once/At-Most-Once delivery
 
 ## Installation
 
@@ -22,6 +29,8 @@ A simplest possible consumer app may look like this:
 ```python
 from evkafka import EVKafkaApp
 
+from models import FooEventModel
+
 
 config = {
     "topics": ["topic"],
@@ -33,7 +42,7 @@ app = EVKafkaApp(config=config)
 
 
 @app.event('FooEvent')
-async def foo_handler(event: dict) -> None:
+async def foo_handler(event: FooEventModel) -> None:
     print(event)
 
 
@@ -49,7 +58,7 @@ It worth nothing to add another handler function to process another message type
 
 ```python
 @app.event('BarEvent')
-async def bar_handler(event: dict) -> None:
+async def bar_handler(event: BarEventModel) -> None:
     print(event)
 ```
 
@@ -57,10 +66,14 @@ async def bar_handler(event: dict) -> None:
 
 ```python
 import asyncio
+
 from evkafka import EVKafkaProducer
+from pydantic import BaseModel
+
+from models import FooEventModel
 
 
-async def produce(event: dict, event_type: str):
+async def produce(event: BaseModel, event_type: str):
     config = {
         "topic": "topic", 
         "bootstrap_servers": "kafka:9092"
@@ -73,5 +86,5 @@ async def produce(event: dict, event_type: str):
         )
 
 if __name__ == "__main__":
-    asyncio.run(produce({"data": "value"}, "FooEvent"))
+    asyncio.run(produce(FooEventModel(data="value"), "FooEvent"))
 ```

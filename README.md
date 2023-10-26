@@ -1,6 +1,17 @@
 # evkafka
 
-**EVKafka** is a small framework for building event driven microservices with Apache Kafka and Python.
+**EVKafka** is a small framework for building event driven 
+microservices with Apache Kafka and Python.
+It is based on asynchronous kafka client library 
+[aiokafka](https://aiokafka.readthedocs.io/en/stable/).
+
+## Features
+
+- Easy to start and use
+- Sync/async handlers are supported
+- Extensible through consumer middleware
+- Lifespan
+- At-Least-Once/At-Most-Once delivery
 
 ## Installation
 

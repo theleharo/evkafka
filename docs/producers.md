@@ -6,9 +6,10 @@ You can either add this header explicitly while producing events or use an `EVKa
 
 ```python
 from evkafka import EVKafkaProducer
+from pydantic import BaseModel
 
 
-async def produce(event: dict, event_type: str):
+async def produce(event: BaseModel, event_type: str):
     config = {
         "topic": "topic", 
         "bootstrap_servers": "kafka:9092"
@@ -50,3 +51,9 @@ config = {
 ```
 `EVKafkaProducer` is a tiny wrapper around `AIOKafkaProducer`. Full list of config options can be found 
 in the official docs at the [AIOKafkaProducer](https://aiokafka.readthedocs.io/en/stable/api.html#producer-class) page.
+
+## Producer instance lifetime
+
+Usually you don't want to instantiate a producer every time you need to produce an event. A common way
+is to run async context manager once at application lifespan. This might be the **EVKafka** [lifespan](lifespan.md)
+or FastAPI/[Starlette](https://www.starlette.io/lifespan/).

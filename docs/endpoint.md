@@ -4,7 +4,7 @@ In order to handle an event you need to define a handler function or an *endpoin
 
 ```python
 @app.event('Event')
-async def handle_event(event: dict) -> None:
+async def handle_event(event: EventModel) -> None:
     await do_something_with(event)
 ```
 
@@ -30,18 +30,12 @@ following types:
 - `bytes`
 - pydantic models
 
-For example, to have a pydantic object inside an endpoint:
+For example, to have a dict inside an endpoint just type:
 
 ```python
-from pydantic import BaseModel
-
-
-class Event(BaseModel):
-    data: str
-    
-@app.event('Event'):
-async def handle_event(event: Event) -> None:
-    assert isinstance(event, Event)
+@app.event('Event')
+async def handle_event(event: dict) -> None:
+    assert isinstance(event, dict)
 ```
 
 > **Note:** Kafka message value must be a valid json if an endpoint expects `dict` or pydantic object. However,
@@ -56,8 +50,11 @@ current event:
 ```python
 from evkafka import Request
 
+from models import EventModel
+
+
 @app.event('Event')
-async def handle_event(event: dict, request: Request) -> None:
+async def handle_event(event: EventModel, request: Request) -> None:
     assert 'Some-Header' in request.headers
 ```
 
@@ -67,7 +64,7 @@ A handler function is either `async def` or bare `def`:
 
 ```python
 @app.event('Event')
-def handle_event(event: dict) -> None:
+def handle_event(event: bytes) -> None:
     do_something_with(event)
 ```
 In latter case handler function is executed in a thread pool.
