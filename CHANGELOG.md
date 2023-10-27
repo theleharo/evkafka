@@ -1,4 +1,4 @@
-### latest
+### 0.4.0 (2023-10-27)
 
 **Added**
  - `pre-commit` and `post-commit` consumer mode 
