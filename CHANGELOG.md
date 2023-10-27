@@ -3,6 +3,9 @@
 **Added**
  - `pre-commit` and `post-commit` consumer mode 
 
+**Updated**
+ - TestClient accepts non encoded event
+
 **Removed**
  - `enable_auto_commit` from consumer config
 

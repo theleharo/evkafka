@@ -9,16 +9,21 @@ to handlers directly from `pytest` tests.
 Consider having the application code in `main.py`:
 ```python
 from evkafka import EVKafkaApp
+from pydantic import  BaseModel
 
 
+class Event(BaseModel):
+    key: str
+
+    
 app = EVKafkaApp(config={"topics": ["topic"]})
 
 
 @app.event("Event")
-async def handler(e: dict):
+async def handler(e: Event):
     await store_event(e)
 
-async def store_event(e: dict):
+async def store_event(e: Event):
     pass
 
 ```
@@ -28,7 +33,7 @@ write our test using `TestClient` as following (assume `pytest-mock` is installe
 ```python
 from evkafka import TestClient
 
-from main import app
+from main import app, Event
 
 
 def test_store_event(mocker):
@@ -37,16 +42,19 @@ def test_store_event(mocker):
     with TestClient(app) as client:
         client.send_event(
             topic='topic',
-            event=b'{"key":"value"}',
+            event={"key":"value"},
             event_type='Event'
         )
 
-    mock_store_event.assert_awaited_once_with({'key': 'value'})
+    mock_store_event.assert_awaited_once_with(Event(key="value"))
 
 ```
 Note, `TestClient` works only with normal `def` fixtures and test functions, not `async def`.
 You're still able to use `AsyncMock` and check whether mocked coroutines were awaited
 as in the example above.
+
+`TestClient` accepts events of following types: `bytes`, `str`, `dict`, pydantic model. Event is always
+encoded into `bytes` and goes through consumer middleware stack before reaching target endpoint.
 
 ## Multiple Consumers
 
@@ -63,7 +71,7 @@ def test_store_event():
     with TestClient(app) as client:
         client.send_event(
             topic='topic',
-            event=b'{"key":"value"}',
+            event={"key":"value"},
             event_type='Event',
             consumer_name='foo-consumer',
         )
