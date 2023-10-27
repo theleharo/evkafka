@@ -11,7 +11,7 @@ from evkafka.context import ConsumerCtx, Context, MessageCtx, Request
 def send_event():
     return {
         "topic": "topic",
-        "event": b'{"a":"b"}',
+        "event": b'{"a": "b"}',
         "event_type": "Event",
         "key": b"key",
         "partition": 1,
@@ -46,39 +46,31 @@ def exp_ctx(send_event):
 
 
 @pytest.fixture()
-def default_app(exp_ctx):
+def endpoint(mocker):
+    return mocker.Mock()
+
+
+@pytest.fixture()
+def default_app(endpoint):
     app = EVKafkaApp(
         config={"topics": ["topic"], "group_id": "group", "client_id": "client"},
     )
 
-    event = None
-    ctx = None
-
     @app.event("Event")
-    async def handle_event(e: bytes, r: Request) -> None:
-        nonlocal event, ctx
-        event = e
-        ctx = r.context
+    async def handle_event(e: bytes, r: Request) -> None:  # noqa: ARG001
+        endpoint(context=r.context, value=e)
 
-    yield app
-
-    assert event == exp_ctx.message.value
-    assert ctx == exp_ctx
+    return app
 
 
 @pytest.fixture()
-def app(exp_ctx):
+def app(endpoint):
     app = EVKafkaApp()
     h = Handler()
 
-    event = None
-    ctx = None
-
     @h.event("Event")
-    async def handle_event(e: bytes, r: Request) -> None:
-        nonlocal event, ctx
-        event = e
-        ctx = r.context
+    async def handle_event(e: bytes, r: Request) -> None:  # noqa: ARG001
+        endpoint(context=r.context, value=e)
 
     app.add_consumer(
         config={"topics": ["topic"], "group_id": "group", "client_id": "client"},
@@ -86,10 +78,7 @@ def app(exp_ctx):
         name="app-consumer",
     )
 
-    yield app
-
-    assert event == exp_ctx.message.value
-    assert ctx == exp_ctx
+    return app
 
 
 @pytest.fixture()
@@ -120,14 +109,16 @@ async def test_client_in_async_mode_raises():
             pass
 
 
-def test_client_send_event_default_app(default_app, send_event):
+def test_client_send_event_default_app(default_app, send_event, endpoint, exp_ctx):
     with TestClient(default_app) as c:
         c.send_event(**send_event)
+    endpoint.assert_called_once_with(context=exp_ctx, value=exp_ctx.message.value)
 
 
-def test_client_send_event_app(app, send_event):
+def test_client_send_event_app(app, send_event, endpoint, exp_ctx):
     with TestClient(app) as c:
         c.send_event(**send_event)
+    endpoint.assert_called_once_with(context=exp_ctx, value=exp_ctx.message.value)
 
 
 def test_client_send_event_to_unknown_consumer(send_event):
@@ -191,3 +182,10 @@ def test_client_broken_lifespan_stop(lifespan):
     with pytest.raises(RuntimeError, match="not stopped"):
         with TestClient(app):
             pass
+
+
+@pytest.mark.parametrize("value", [b'{"a": "b"}', '{"a": "b"}', {"a": "b"}])
+def test_client_send_event_types(default_app, endpoint, value):
+    with TestClient(default_app) as c:
+        c.send_event(event_type="Event", event=value, topic="topic")
+    assert endpoint.call_args.kwargs["value"] == b'{"a": "b"}'

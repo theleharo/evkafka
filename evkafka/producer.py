@@ -60,7 +60,8 @@ class EVKafkaProducer:
             headers=list(event_headers.items()),
         )
 
-    def encode_event(self, event: Any) -> bytes:
+    @staticmethod
+    def encode_event(event: Any) -> bytes:
         if isinstance(event, dict):
             value: bytes = json.dumps(event).encode()
         elif BaseModel and isinstance(event, BaseModel):

@@ -6,7 +6,7 @@ from asyncio import AbstractEventLoop
 from types import TracebackType
 from typing import Any, Type
 
-from evkafka import EVKafkaApp
+from evkafka import EVKafkaApp, EVKafkaProducer
 from evkafka.context import AppContext, ConsumerCtx, MessageCtx
 from evkafka.lifespan import LifespanManager
 
@@ -19,7 +19,7 @@ class TestClient:
 
     def send_event(
         self,
-        event: bytes,
+        event: Any,
         event_type: str,
         topic: str,
         key: bytes | None = None,
@@ -36,10 +36,10 @@ class TestClient:
             **(headers if headers else {}),
             "Event-Type": event_type.encode(),
         }
-
+        value = EVKafkaProducer.encode_event(event)
         message_ctx = MessageCtx(
             key=key,
-            value=event,
+            value=value,
             headers=tuple(event_headers.items()),
             event_type=event_type,
         )
