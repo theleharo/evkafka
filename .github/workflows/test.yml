@@ -10,7 +10,7 @@ on:
 
 jobs:
   test:
-    name: Make Tests
+    name: Run Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -37,7 +37,7 @@ jobs:
           mkdir coverage
           mv .coverage coverage/
 
-      - name: store coverage files
+      - name: Upload coverage file
         uses: actions/upload-artifact@v3
         with:
           name: coverage
