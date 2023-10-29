@@ -66,10 +66,20 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--cov=evkafka --cov-report term-missing"
+#addopts = "--cov=evkafka --cov-report term-missing"
 asyncio_mode = "auto"
 
 [tool.coverage.report]
+precision = 2
 exclude_also = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "raise NotImplemented",
     "if TYPE_CHECKING:",
+    "@overload",
 ]
+
+
+[tool.coverage.run]
+source = ["evkafka"]
+branch = true

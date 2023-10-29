@@ -1,0 +1,74 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '**'
+  pull_request: {}
+
+jobs:
+  test:
+    name: Make Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -U pip
+          pip install -r requirements-dev.txt
+
+      - name: Lint
+        run: make lint
+
+      - name: Test
+        run: make test
+
+      - name: Store coverage file
+        run: |
+          mkdir coverage
+          mv .coverage coverage/
+
+      - name: store coverage files
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage
+          path: coverage
+
+  coverage-check:
+    name: Coverage report
+    needs: [test]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Download coverage file
+        uses: actions/download-artifact@v3
+        with:
+          name: coverage
+
+      - run: pip install coverage smokeshow
+
+      - name: Build coverage
+        run: coverage html -i
+
+      - run: smokeshow upload htmlcov
+
+        env:
+          SMOKESHOW_GITHUB_STATUS_DESCRIPTION: Coverage {coverage-percentage}
+          SMOKESHOW_GITHUB_COVERAGE_THRESHOLD: 95
+          SMOKESHOW_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SMOKESHOW_GITHUB_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
