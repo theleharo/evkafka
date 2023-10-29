@@ -1,5 +1,11 @@
 # evkafka
 
+<p align="left">
+<a href="https://coverage-badge.samuelcolvin.workers.dev/redirect/theleharo/evkafka" target="_blank">
+    <img src="https://coverage-badge.samuelcolvin.workers.dev/theleharo/evkafka.svg" alt="Coverage">
+</a>
+</p>
+
 **EVKafka** is a small framework for building event driven 
 microservices with Apache Kafka and Python.
 It is based on asynchronous kafka client library 
