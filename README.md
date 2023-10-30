@@ -1,6 +1,7 @@
 # evkafka
 [![Test](https://github.com/theleharo/evkafka/actions/workflows/test.yml/badge.svg)](https://github.com/theleharo/evkafka/actions/workflows/test.yml)
 [![Coverage](https://coverage-badge.samuelcolvin.workers.dev/theleharo/evkafka.svg)](https://coverage-badge.samuelcolvin.workers.dev/redirect/theleharo/evkafka)
+[![PyPI - Version](https://img.shields.io/pypi/v/evkafka)](https://pypi.org/project/evkafka/)
 
 **EVKafka** is a small framework for building event driven 
 microservices with Apache Kafka and Python.
