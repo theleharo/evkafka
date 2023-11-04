@@ -8,6 +8,8 @@ description = "EVKafka framework. Handle kafka events easy"
 readme = 'README.md'
 dependencies = [
     "aiokafka>=0.8.1",
+    "aiohttp>=3.8.6",
+    "pydantic>=2.4.2",
 ]
 requires-python = ">=3.10"
 classifiers = [
