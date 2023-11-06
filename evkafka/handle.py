@@ -30,7 +30,7 @@ class Handle:
 
             if type_ is dict:
                 value: Any = await request.json()
-            elif BaseModel and issubclass(type_, BaseModel):
+            elif BaseModel and issubclass(type_, BaseModel):  # type: ignore[truthy-function]
                 value = type_(**(await request.json()))
             elif type_ is str:
                 value = request.value.decode()

@@ -1,4 +1,4 @@
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, Union
 
 from pydantic import AnyUrl, BaseModel, EmailStr, Field, StringConstraints
 
@@ -56,7 +56,7 @@ class Tag(BaseModel):
 class KafkaServerBinding(BaseModel):
     schemaRegistryUrl: AnyUrl | None
     schemaRegistryVendor: str | None
-    bindingVersion: str | None = 'latest'
+    bindingVersion: str | None = "latest"
 
 
 class ServerBindings(BaseModel):
@@ -92,18 +92,139 @@ class TopicConfiguration(BaseModel):
     max_message_bytes: int | None = Field(alias="max.message.bytes")
 
 
-class _Schema(BaseModel):
-    # TODO
-    pass
+# Schema definition is taken from fastapi.openapi.models
 
 
-Schema = _Schema | bool
+class Discriminator(BaseModel):
+    propertyName: str
+    mapping: dict[str, str] | None = None
+
+
+class XML(BaseModel):
+    name: str | None = None
+    namespace: str | None = None
+    prefix: str | None = None
+    attribute: bool | None = None
+    wrapped: bool | None = None
+
+    model_config = {"extra": "allow"}
+
+
+class Schema(BaseModel):
+    schema_: str | None = Field(default=None, alias="$schema")
+    id: str | None = Field(default=None, alias="$id")
+    ref: str | None = Field(default=None, alias="$ref")
+    comment: str | None = Field(default=None, alias="$comment")
+
+    # https://json-schema.org/draft-07/json-schema-validation
+    type: str | None = None
+    enum: list[Any] | None = None
+    const: Any | None = None
+    multipleOf: float | None = Field(default=None, gt=0)
+    maximum: float | None = None
+    exclusiveMaximum: float | None = None
+    minimum: float | None = None
+    exclusiveMinimum: float | None = None
+    maxLength: int | None = Field(default=None, ge=0)
+    minLength: int | None = Field(default=None, ge=0)
+    pattern: str | None = None
+
+    items: Union[
+        "SchemaOrBool", list["SchemaOrBool"]
+    ] | None = None  # 2020-12 new meaning
+    additionalItems: Union["SchemaOrBool", None] = None  # 2020-12 new meaning
+    maxItems: int | None = Field(default=None, ge=0)
+    minItems: int | None = Field(default=None, ge=0)
+    uniqueItems: bool | None = None
+    contains: Union["SchemaOrBool", None] = None
+
+    maxProperties: int | None = Field(default=None, ge=0)
+    minProperties: int | None = Field(default=None, ge=0)
+    required: list[str] | None = None
+    properties: dict[str, "SchemaOrBool"] | None = None
+    patternProperties: dict[str, "SchemaOrBool"] | None = None
+    additionalProperties: Union["SchemaOrBool", None] = None
+    dependencies: dict[str, set[str] | "SchemaOrBool"] | None = None  # 2019-09: split
+    propertyNames: Union["SchemaOrBool", None] = None
+
+    if_: Union["SchemaOrBool", None] = Field(default=None, alias="if")
+    then: Union["SchemaOrBool", None] = None
+    else_: Union["SchemaOrBool", None] = Field(default=None, alias="else")
+    allOf: list["SchemaOrBool"] | None = None
+    anyOf: list["SchemaOrBool"] | None = None
+    oneOf: list["SchemaOrBool"] | None = None
+    not_: Union["SchemaOrBool", None] = Field(default=None, alias="not")
+
+    format: str | None = None
+
+    contentEncoding: str | None = None
+    contentMediaType: str | None = None
+
+    definitions: dict[
+        str, "SchemaOrBool"
+    ] | None = None  # renamed to $defs, see 2019-09
+
+    title: str | None = None
+    description: str | None = None
+    default: Any | None = None
+    readOnly: bool | None = None
+    writeOnly: bool | None = None
+    examples: list[Any] | None = None
+
+    # asyncapi 2.6.0
+    discriminator: Discriminator | None = None
+    externalDocs: ExternalDocumentation | None = None
+
+    #  from 2019-09
+    # new
+    # anchor: str | None = Field(default=None, alias="$anchor")
+
+    # definitions renamed to $defs
+    # defs: dict[str, "SchemaOrBool"] | None = Field(default=None, alias="$defs")
+
+    # dependencies  are splitted:
+    # dependentSchemas: dict[str, "SchemaOrBool"] | None = None
+    # dependentRequired: dict[str, set[str]] | None = None
+
+    # new
+    # vocabulary: str | None = Field(default=None, alias="$vocabulary")
+
+    # new
+    #
+    # maxContains: int | None = Field(default=None, ge=0)
+    # minContains: int | None = Field(default=None, ge=0)
+
+    # new
+    #     deprecated: bool | None = None
+
+    # new
+    # unevaluatedItems: Union["SchemaOrBool", None] = None
+    # unevaluatedProperties: Union["SchemaOrBool", None] = None
+
+    # new
+    # contentSchema: Union["SchemaOrBool", None] = None
+
+    # from 2020-12
+    # items -> prefixItems      arrays
+    # additionalItems -> items  # new syntax
+
+    #     items: Union["SchemaOrBool", list["SchemaOrBool"]] | None = None
+    #     prefixItems: list["SchemaOrBool"] | None = None
+
+    # new
+    # dynamicAnchor: str | None = Field(default=None, alias="$dynamicAnchor")
+    # dynamicRef: str | None = Field(default=None, alias="$dynamicRef")
+
+    model_config = {"extra": "allow"}
+
+
+SchemaOrBool = Schema | bool
 
 
 class KafkaOperationBinding(BaseModel):
-    groupId: Schema | Reference | None
-    clientId: Schema | Reference | None
-    bindingVersion: str | None = 'latest'
+    groupId: SchemaOrBool | Reference | None
+    clientId: SchemaOrBool | Reference | None
+    bindingVersion: str | None = "latest"
 
 
 class OperationBindings(BaseModel):
@@ -133,7 +254,7 @@ class CorrelationId(BaseModel):
 
 
 class KafkaMesssageBinding(BaseModel):
-    key: Schema | Reference
+    key: SchemaOrBool | Reference
     schemaIdLocation: str | None
     schemaIdPayloadEncoding: str | None
     schemaLookupStrategy: str | None
@@ -156,7 +277,7 @@ class MessageExample(BaseModel):
 
 class MessageTrait(BaseModel):
     messageId: str | None
-    headers: Schema | Reference | None
+    headers: SchemaOrBool | Reference | None
     correlationId: CorrelationId | Reference | None
     schemaFormat: str | None
     contentType: str | None
@@ -172,7 +293,7 @@ class MessageTrait(BaseModel):
 
 class Message(BaseModel):
     messageId: str | None
-    headers: Schema | Reference | None
+    headers: SchemaOrBool | Reference | None
     payload: Any
     correlationId: CorrelationId | Reference | None
     schemaFormat: str | None
@@ -210,7 +331,7 @@ class Operation(BaseModel):
 
 class Parameter(BaseModel):
     description: str | None
-    schema: Schema | Reference | None
+    schema_: SchemaOrBool | Reference | None = Field(default=None, alias="schema")
     location: str | None
 
 
@@ -219,7 +340,7 @@ class KafkaChannelBinding(BaseModel):
     partitions: int | None
     replicas: int | None
     topicConfiguration: TopicConfiguration | None
-    bindingVersion: str | None = 'latest'
+    bindingVersion: str | None = "latest"
 
 
 class ChannelBindings(BaseModel):
@@ -235,20 +356,32 @@ class ChannelItem(BaseModel):
     servers: list[str] | None
     subscribe: Operation | None
     publish: Operation | None
-    parameters: dict[Annotated[str, StringConstraints(pattern=r'^[A-Za-z0-9_\-]+$')], Parameter | Reference]
+    parameters: dict[
+        Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9_\-]+$")],
+        Parameter | Reference,
+    ]
     bindings: ChannelBindings | Reference | None
 
     model_config = {"extra": "allow"}
 
 
 class SecuritySchemas(BaseModel):
-    type: Literal["userPassword", "apiKey", "oauth2", "plain", "scramSha256", "scramSha512", "gssapi"] | None
+    type: Literal[
+        "userPassword",
+        "apiKey",
+        "oauth2",
+        "plain",
+        "scramSha256",
+        "scramSha512",
+        "gssapi",
+    ] | None
     description: str | None
 
     model_config = {"extra": "allow"}
 
+
 class Components(BaseModel):
-    schemas: dict[str, Schema | Reference]
+    schemas: dict[str, SchemaOrBool | Reference]
     servers: dict[str, Server | Reference]
     serverVariables: dict[str, ServerVariable | Reference]
     channels: dict[str, ChannelItem]
@@ -267,12 +400,18 @@ class Components(BaseModel):
 
 
 class AsyncAPI(BaseModel):
-    asyncapi: str = '2.6.0'
+    asyncapi: str = "2.6.0"
     id: str | None
     info: Info
-    servers: dict[Annotated[str, StringConstraints(pattern=r'^[A-Za-z0-9_\-]+$')], Server | Reference]
+    servers: dict[
+        Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9_\-]+$")],
+        Server | Reference,
+    ]
     defaultContentType: str | None
     channels: dict[str, ChannelItem]
     components: Components | None
     tags: list[Tag]
     externalDocs: ExternalDocumentation | None
+
+
+Schema.model_rebuild()

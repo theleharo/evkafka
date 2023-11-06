@@ -64,9 +64,8 @@ class EVKafkaProducer:
     def encode_event(event: Any) -> bytes:
         if isinstance(event, dict):
             value: bytes = json.dumps(event).encode()
-        elif BaseModel and isinstance(event, BaseModel):
-            # todo handle v2
-            value = event.json().encode()
+        elif BaseModel and isinstance(event, BaseModel):  # type: ignore[truthy-function]
+            value = event.model_dump_json().encode()
         elif isinstance(event, str):
             value = event.encode()
         elif isinstance(event, bytes):
