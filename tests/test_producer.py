@@ -126,7 +126,7 @@ async def test_send_event_types(orig_kafka, producer, event):
 
 async def test_send_event_pyd(mocker, orig_kafka, producer):
     class B:
-        def json(self):
+        def model_dump_json(self):
             return '{"key": "value"}'
 
     mocker.patch("evkafka.producer.BaseModel", B)
