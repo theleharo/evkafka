@@ -383,20 +383,20 @@ class SecuritySchemas(BaseModel):
 
 
 class Components(BaseModel):
-    schemas: dict[str, SchemaOrBool | Reference]
-    servers: dict[str, Server | Reference]
-    serverVariables: dict[str, ServerVariable | Reference]
-    channels: dict[str, ChannelItem]
-    messages: dict[str, Message | Reference]
-    securitySchemas: dict[str, SecuritySchemas | Reference]
-    parameters: dict[str, Parameter | Reference]
-    correlationIds: dict[str, CorrelationId | Reference]
-    operationTraits: dict[str, OperationTrait | Reference]
-    messageTraits: dict[str, MessageTrait | Reference]
-    serverBindings: dict[str, ServerBindings | Reference]
-    channelBindings: dict[str, ChannelBindings | Reference]
-    operationBindings: dict[str, OperationBindings | Reference]
-    messageBindings: dict[str, MessageBindings | Reference]
+    schemas: dict[str, SchemaOrBool | Reference] | None = None
+    servers: dict[str, Server | Reference] | None = None
+    serverVariables: dict[str, ServerVariable | Reference] | None = None
+    channels: dict[str, ChannelItem] | None = None
+    messages: dict[str, Message | Reference] | None = None
+    securitySchemas: dict[str, SecuritySchemas | Reference] | None = None
+    parameters: dict[str, Parameter | Reference] | None = None
+    correlationIds: dict[str, CorrelationId | Reference] | None = None
+    operationTraits: dict[str, OperationTrait | Reference] | None = None
+    messageTraits: dict[str, MessageTrait | Reference] | None = None
+    serverBindings: dict[str, ServerBindings | Reference] | None = None
+    channelBindings: dict[str, ChannelBindings | Reference] | None = None
+    operationBindings: dict[str, OperationBindings | Reference] | None = None
+    messageBindings: dict[str, MessageBindings | Reference] | None = None
 
     model_config = {"extra": "allow"}
 
