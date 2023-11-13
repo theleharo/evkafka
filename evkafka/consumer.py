@@ -58,6 +58,10 @@ class EVKafkaConsumer:
             self._client_id = "evkafka"
             config_extra["client_id"] = self._client_id
 
+        max_endpoint_exec_time_ms = config.pop("max_endpoint_exec_time_ms", 20000)
+        config_extra["max_poll_interval_ms"] = max_endpoint_exec_time_ms
+        config_extra["rebalance_timeout_ms"] = max_endpoint_exec_time_ms
+
         self._auto_commit_mode = config.pop("auto_commit_mode", "post-commit")
         assert self._auto_commit_mode in [
             "pre-commit",

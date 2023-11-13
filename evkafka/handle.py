@@ -13,10 +13,20 @@ except ModuleNotFoundError:
 
 
 class Handle:
-    def __init__(self, event_type: str, endpoint: F) -> None:
+    def __init__(
+        self,
+        event_type: str,
+        endpoint: F,
+        summary: str | None = None,
+        description: str | None = None,
+        tags: list[str] | None = None,
+    ) -> None:
         self.event_type = event_type
         self.endpoint = endpoint
         self.endpoint_dependencies = get_dependencies(endpoint)
+        self.summary = summary
+        self.description = description
+        self.tags = tags
         self.app = self.get_app()
 
     def get_app(self) -> Callable[..., Awaitable[None]]:
