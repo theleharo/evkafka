@@ -25,6 +25,9 @@ class EVKafkaApp:
         name: str | None = "default",
         middleware: typing.Sequence[Middleware] | None = None,
         lifespan: Lifespan | None = None,
+        title: str = "EVKafka",
+        version: str = "0.1.0",
+        description: str | None = None,
     ) -> None:
         self.force_exit = False
         self.should_exit = False
@@ -48,6 +51,10 @@ class EVKafkaApp:
         self.middleware = middleware or default_stack
         self.lifespan = lifespan
         self._lifespan_manager = LifespanManager(lifespan)
+
+        self.title = title
+        self.version = version
+        self.description = description
 
     def run(self) -> None:  # pragma:  no cover
         asyncio.run(self.serve())

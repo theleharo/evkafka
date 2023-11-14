@@ -13,7 +13,7 @@ from aiokafka import (  # type: ignore
 )
 from kafka import TopicPartition
 
-from evkafka.config import ConsumerConfig
+from evkafka.config import ConsumerConfig, TopicConfig
 from evkafka.context import ConsumerCtx, MessageCtx
 
 logger = logging.getLogger(__name__)
@@ -50,7 +50,14 @@ class EVKafkaConsumer:
         self._batch_max_size = batch_max_size
 
         config_extra: dict[str, typing.Any] = {}
-        self._topics = config.pop("topics")
+        topics: list[str] | list[TopicConfig] = config.pop("topics")
+        assert topics, "Topics list cannot be empty"
+
+        if isinstance(topics[0], dict):
+            self._topics = [t["name"] for t in typing.cast(list[dict], topics)]
+        else:
+            self._topics = topics
+
         self._group_id = config.get("group_id")
         try:
             self._client_id = config["client_id"]

@@ -6,7 +6,7 @@ default values.
 from typing import Any, Callable
 
 from pydantic import RootModel
-from typing_extensions import TypedDict
+from typing_extensions import Required, TypedDict
 
 
 class BrokerConfig(TypedDict, total=False):
@@ -92,8 +92,16 @@ class BrokerConfig(TypedDict, total=False):
 BrokerConfigModel = RootModel[BrokerConfig]
 
 
+class TopicConfig(TypedDict, total=False):
+    name: Required[str]
+    """ Kafka topic name """
+
+    description: str | None
+    """ Optional description for this topic. Used in AsyncAPI documentation. """
+
+
 class ConsumerConfig(BrokerConfig, total=False):
-    topics: list[str]
+    topics: list[str] | list[TopicConfig]
     """ List of topics to subscribe to. """
 
     group_id: str
