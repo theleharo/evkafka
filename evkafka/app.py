@@ -7,6 +7,8 @@ import typing
 import uuid
 from types import FrameType
 
+from .asyncapi.server import AsyncApiServer
+from .asyncapi.spec import get_openapi_spec
 from .config import ConsumerConfig
 from .consumer import EVKafkaConsumer
 from .context import AppContext, ConsumerCtx, Context, HandlerApp, MessageCtx
@@ -28,6 +30,12 @@ class EVKafkaApp:
         title: str = "EVKafka",
         version: str = "0.1.0",
         description: str | None = None,
+        terms_of_service: str | None = None,
+        contact: dict[str, str] | None = None,
+        license_info: dict[str, str] | None = None,
+        expose_asyncapi: bool = False,
+        asyncapi_host: str = '0.0.0.0',
+        asyncapi_port: str = '8080',
     ) -> None:
         self.force_exit = False
         self.should_exit = False
@@ -55,6 +63,14 @@ class EVKafkaApp:
         self.title = title
         self.version = version
         self.description = description
+        self.terms_of_service = terms_of_service
+        self.contact = contact
+        self.license_info = license_info
+        self.asyncapi_schema: dict[str, typing.Any] = {}
+        self.expose_asyncapi = expose_asyncapi
+        self.asyncapi_host = asyncapi_host
+        self.asyncapi_port = asyncapi_port
+        self._asyncapi_server: AsyncApiServer | None = None
 
     def run(self) -> None:  # pragma:  no cover
         asyncio.run(self.serve())
@@ -94,6 +110,10 @@ class EVKafkaApp:
 
         consumer_configs = self.collect_consumer_configs()
 
+        if self.expose_asyncapi:
+            self._asyncapi_server = AsyncApiServer(self.asyncapi(), host=self.asyncapi_host, port=self.asyncapi_port)
+            await self._asyncapi_server.start()
+
         for _name, config_items in consumer_configs.items():
             consumer = EVKafkaConsumer(
                 config=config_items["config"],
@@ -126,6 +146,9 @@ class EVKafkaApp:
 
     async def shutdown(self) -> None:
         logger.info("Shutting down")
+
+        if self.expose_asyncapi and self._asyncapi_server:
+            await self._asyncapi_server.stop()
 
         if self.force_exit:
             return
@@ -187,3 +210,16 @@ class EVKafkaApp:
             "handler": handler,
             "messages_cb": messages_cb,
         }
+
+    def asyncapi(self) -> dict[str, typing.Any]:
+        if not self.asyncapi_schema:
+            self.asyncapi_schema = get_openapi_spec(
+                title=self.title,
+                version=self.version,
+                consumer_configs=self.collect_consumer_configs(),
+                description=self.description,
+                terms_of_service=self.terms_of_service,
+                contact=self.contact,
+                license_info=self.license_info,
+            )
+        return self.asyncapi_schema

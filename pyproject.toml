@@ -54,7 +54,7 @@ select = [
 ignore = ["E501", "PLR2004"]
 
 [tool.ruff.pylint]
-max-args = 10
+max-args = 20
 
 [tool.mypy]
 disallow_untyped_defs = true
