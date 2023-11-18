@@ -4,13 +4,9 @@ from types import TracebackType
 from typing import Any, Type
 
 from aiokafka import AIOKafkaProducer
+from pydantic import BaseModel
 
 from evkafka.config import ProducerConfig
-
-try:
-    from pydantic import BaseModel  # type: ignore
-except ModuleNotFoundError:
-    BaseModel: Type = None  # type: ignore
 
 
 class EVKafkaProducer:
@@ -64,9 +60,8 @@ class EVKafkaProducer:
     def encode_event(event: Any) -> bytes:
         if isinstance(event, dict):
             value: bytes = json.dumps(event).encode()
-        elif BaseModel and isinstance(event, BaseModel):
-            # todo handle v2
-            value = event.json().encode()
+        elif isinstance(event, BaseModel):  # type: ignore[truthy-function]
+            value = event.model_dump_json().encode()
         elif isinstance(event, str):
             value = event.encode()
         elif isinstance(event, bytes):

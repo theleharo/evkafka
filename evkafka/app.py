@@ -7,6 +7,8 @@ import typing
 import uuid
 from types import FrameType
 
+from .asyncapi.server import AsyncApiServer
+from .asyncapi.spec import get_asyncapi_spec
 from .config import ConsumerConfig
 from .consumer import EVKafkaConsumer
 from .context import AppContext, ConsumerCtx, Context, HandlerApp, MessageCtx
@@ -25,6 +27,15 @@ class EVKafkaApp:
         name: str | None = "default",
         middleware: typing.Sequence[Middleware] | None = None,
         lifespan: Lifespan | None = None,
+        title: str = "EVKafka",
+        version: str = "0.1.0",
+        description: str | None = None,
+        terms_of_service: str | None = None,
+        contact: dict[str, str] | None = None,
+        license_info: dict[str, str] | None = None,
+        expose_asyncapi: bool = False,
+        asyncapi_host: str = "0.0.0.0",
+        asyncapi_port: int = 8080,
     ) -> None:
         self.force_exit = False
         self.should_exit = False
@@ -48,6 +59,18 @@ class EVKafkaApp:
         self.middleware = middleware or default_stack
         self.lifespan = lifespan
         self._lifespan_manager = LifespanManager(lifespan)
+
+        self.title = title
+        self.version = version
+        self.description = description
+        self.terms_of_service = terms_of_service
+        self.contact = contact
+        self.license_info = license_info
+        self.asyncapi_schema: str | None = None
+        self.expose_asyncapi = expose_asyncapi
+        self.asyncapi_host = asyncapi_host
+        self.asyncapi_port = asyncapi_port
+        self._asyncapi_server: AsyncApiServer | None = None
 
     def run(self) -> None:  # pragma:  no cover
         asyncio.run(self.serve())
@@ -87,6 +110,12 @@ class EVKafkaApp:
 
         consumer_configs = self.collect_consumer_configs()
 
+        if self.expose_asyncapi:
+            self._asyncapi_server = AsyncApiServer(
+                self.asyncapi(), host=self.asyncapi_host, port=self.asyncapi_port
+            )
+            await self._asyncapi_server.start()
+
         for _name, config_items in consumer_configs.items():
             consumer = EVKafkaConsumer(
                 config=config_items["config"],
@@ -120,13 +149,22 @@ class EVKafkaApp:
     async def shutdown(self) -> None:
         logger.info("Shutting down")
 
+        if self.expose_asyncapi and self._asyncapi_server:
+            await self._asyncapi_server.stop()
+
         if self.force_exit:
             return
 
         await asyncio.gather(*(consumer.shutdown() for consumer in self._consumers))
         await self._lifespan_manager.stop()
 
-    def event(self, event_type: str) -> Wrapped:
+    def event(
+        self,
+        event_type: str,
+        summary: str | None = None,
+        description: str | None = None,
+        tags: list[str] | None = None,
+    ) -> Wrapped:
         assert self._default_consumer, (
             f"Event cannot be added because default consumer configuration "
             f'is not passed to "{self.__class__.__name__}()"'
@@ -135,7 +173,9 @@ class EVKafkaApp:
         if self._default_handler is None:
             self._default_handler = self._handler_cls()
 
-        return self._default_handler.event(event_type)
+        return self._default_handler.event(
+            event_type, summary=summary, description=description, tags=tags
+        )
 
     def add_consumer(
         self,
@@ -165,9 +205,24 @@ class EVKafkaApp:
             )
             return await app(context)
 
+        assert name not in self._consumer_configs, "Consumer names must be unique"
         name = name or str(uuid.uuid4())
 
         self._consumer_configs[name] = {
             "config": config,
+            "handler": handler,
             "messages_cb": messages_cb,
         }
+
+    def asyncapi(self) -> str:
+        if not self.asyncapi_schema:
+            self.asyncapi_schema = get_asyncapi_spec(
+                title=self.title,
+                version=self.version,
+                consumer_configs=self.collect_consumer_configs(),
+                description=self.description,
+                terms_of_service=self.terms_of_service,
+                contact=self.contact,
+                license_info=self.license_info,
+            )
+        return self.asyncapi_schema

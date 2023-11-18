@@ -7,7 +7,9 @@ authors = [
 description = "EVKafka framework. Handle kafka events easy"
 readme = 'README.md'
 dependencies = [
-    "aiokafka>=0.8.1",
+    "aiokafka==0.8.1",
+    "aiohttp>=3.8.6",
+    "pydantic>=2.4.2",
 ]
 requires-python = ">=3.10"
 classifiers = [
@@ -52,7 +54,10 @@ select = [
 ignore = ["E501", "PLR2004"]
 
 [tool.ruff.pylint]
-max-args = 10
+max-args = 20
+
+[tool.ruff.lint.mccabe]
+max-complexity = 11
 
 [tool.mypy]
 disallow_untyped_defs = true

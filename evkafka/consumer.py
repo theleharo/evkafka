@@ -13,7 +13,7 @@ from aiokafka import (  # type: ignore
 )
 from kafka import TopicPartition
 
-from evkafka.config import ConsumerConfig
+from evkafka.config import ConsumerConfig, TopicConfig
 from evkafka.context import ConsumerCtx, MessageCtx
 
 logger = logging.getLogger(__name__)
@@ -50,13 +50,29 @@ class EVKafkaConsumer:
         self._batch_max_size = batch_max_size
 
         config_extra: dict[str, typing.Any] = {}
-        self._topics = config.pop("topics")
+        topics: list[str] | list[TopicConfig] = config.pop("topics")
+        assert topics, "Topics list cannot be empty"
+
+        topic_names = []
+
+        for topic in topics:
+            if isinstance(topic, str):
+                topic_names.append(topic)
+            else:
+                topic_names.append(typing.cast(TopicConfig, topic)["name"])
+
+        self._topics = topic_names
+
         self._group_id = config.get("group_id")
         try:
             self._client_id = config["client_id"]
         except KeyError:
             self._client_id = "evkafka"
             config_extra["client_id"] = self._client_id
+
+        max_endpoint_exec_time_ms = config.pop("max_endpoint_exec_time_ms", 20000)
+        config_extra["max_poll_interval_ms"] = max_endpoint_exec_time_ms
+        config_extra["rebalance_timeout_ms"] = max_endpoint_exec_time_ms
 
         self._auto_commit_mode = config.pop("auto_commit_mode", "post-commit")
         assert self._auto_commit_mode in [

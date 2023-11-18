@@ -25,6 +25,16 @@ def mocked_consumer(mocker):
     return inst
 
 
+@pytest.fixture()
+def asyncapi_server(mocker):
+    server_cls = mocker.patch("evkafka.app.AsyncApiServer")
+    server = server_cls.return_value
+
+    server.start = mocker.AsyncMock()
+    server.stop = mocker.AsyncMock()
+    return server_cls
+
+
 @asynccontextmanager
 async def run_app(app):
     t = asyncio.create_task(app.serve())
@@ -206,3 +216,17 @@ def test_handle_exit_forces_on_second_call():
     app.handle_exit(signal.SIGINT, None)
 
     assert app.force_exit
+
+
+async def test_app_asyncapi_exposition(asyncapi_server):
+    app = EVKafkaApp(expose_asyncapi=True)
+
+    async with run_app(app):
+        asyncapi_server.assert_called_once_with(
+            '{"asyncapi":"2.6.0","info":{"title":"EVKafka","version":"0.1.0"},"servers":{},"channels":{},"components":{"messages":{}}}',
+            host="0.0.0.0",
+            port=8080,
+        )
+        asyncapi_server.return_value.start.assert_awaited_once()
+
+    asyncapi_server.return_value.stop.assert_awaited_once()

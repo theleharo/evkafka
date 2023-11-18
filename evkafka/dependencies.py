@@ -44,7 +44,7 @@ def get_dependencies(endpoint: F) -> EndpointDependencies:
             assert payload_param_name is None, "Only one payload parameter is expected"
             if param_type in [dict, str, bytes]:
                 pass
-            elif BaseModel and issubclass(param_type, BaseModel):
+            elif BaseModel and issubclass(param_type, BaseModel):  # type: ignore[truthy-function]
                 pass
             else:
                 raise AssertionError(
