@@ -1,3 +1,9 @@
+
+### latest
+
+**Added**
+ - Basic AsyncApi schema generation
+
 ### 0.4.0 (2023-10-27)
 
 **Added**
