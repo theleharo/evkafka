@@ -53,10 +53,15 @@ class EVKafkaConsumer:
         topics: list[str] | list[TopicConfig] = config.pop("topics")
         assert topics, "Topics list cannot be empty"
 
-        if isinstance(topics[0], dict):
-            self._topics = [t["name"] for t in typing.cast(list[dict], topics)]
-        else:
-            self._topics = topics
+        topic_names = []
+
+        for topic in topics:
+            if isinstance(topic, str):
+                topic_names.append(topic)
+            else:
+                topic_names.append(typing.cast(TopicConfig, topic)["name"])
+
+        self._topics = topic_names
 
         self._group_id = config.get("group_id")
         try:

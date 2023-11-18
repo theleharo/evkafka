@@ -71,7 +71,7 @@ class Reference(BaseModel):
 
 
 class Server(BaseModel):
-    url: AnyUrl
+    url: str
     protocol: str
     protocolVersion: str | None = None
     description: str | None = None

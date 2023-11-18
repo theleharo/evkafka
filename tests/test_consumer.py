@@ -90,6 +90,14 @@ def messages_cb(mocker):
 
 
 @pytest.fixture()
+def _getmany_returns_no_data_and_stops(aio_consumer):
+    aio_consumer.getmany.side_effect = [
+        None,
+        ConsumerStoppedError,
+    ]
+
+
+@pytest.fixture()
 def _getmany_returns_record_and_stops(aio_consumer, record):
     aio_consumer.getmany.side_effect = [
         {TopicPartition(record.topic, record.partition): [record]},
@@ -156,6 +164,29 @@ async def test_consumer_starts_and_stops(mocker, aio_consumer, config_pre, messa
     rebalance_cls.assert_called_once_with(c.on_rebalance)
 
     aio_consumer.stop.assert_awaited_once()
+
+
+async def test_consumer_subscribes_with_topicconfig(
+    mocker, aio_consumer, config_pre, messages_cb
+):
+    rebalance_cls = mocker.patch("evkafka.consumer.RebalanceListener")
+    config_pre["topics"] = [{"name": "topic1"}]
+    c = EVKafkaConsumer(config=config_pre, messages_cb=messages_cb)
+
+    c.startup()
+    await c.shutdown()
+
+    aio_consumer.subscribe.assert_called_once_with(
+        ["topic1"], listener=rebalance_cls.return_value
+    )
+
+
+@pytest.mark.usefixtures("_getmany_returns_no_data_and_stops")
+async def test_consumer_stops_on_consumer_stopped(config_pre, messages_cb):
+    c = EVKafkaConsumer(config=config_pre, messages_cb=messages_cb)
+
+    t = c.startup()
+    await asyncio.wait([t])  # consumer stops due to _getmany... fixture
 
 
 @pytest.mark.usefixtures("_getmany_returns_record_and_stops")

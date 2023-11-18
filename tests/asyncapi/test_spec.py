@@ -1,6 +1,33 @@
 import json
 
+import pytest
+from pydantic import BaseModel
+
+from evkafka import EVKafkaApp
 from evkafka.asyncapi.spec import get_asyncapi_spec, get_brokers, get_topics
+
+
+@pytest.fixture()
+def app():
+    app = EVKafkaApp(
+        config={
+            "bootstrap_servers": "url",
+            "topics": ["topic"],
+        }
+    )
+
+    class SomeEvent(BaseModel):
+        x: str
+
+    @app.event("SomeEvent")
+    def event_handler(e: SomeEvent):
+        assert e
+
+    @app.event("RawEvent")
+    def raw_event_handler(e: str):
+        assert e
+
+    return app
 
 
 def test_get_asyncapi_spec_info():
@@ -152,3 +179,47 @@ def test_get_topics_combined():
             "b topic": {"description": None, "subscribe": {"message": {"oneOf": []}}},
         },
     )
+
+
+def test_asyncapi_int(app):
+    assert json.loads(app.asyncapi()) == {
+        "asyncapi": "2.6.0",
+        "channels": {
+            "topic": {
+                "servers": ["broker-0"],
+                "subscribe": {
+                    "message": {
+                        "oneOf": [
+                            {"$ref": "#/components/messages/SomeEvent"},
+                            {"$ref": "#/components/messages/RawEvent"},
+                        ]
+                    }
+                },
+            }
+        },
+        "components": {
+            "messages": {
+                "RawEvent": {
+                    "name": "RawEvent",
+                    "payload": {"$ref": "#/components/schemas/RawEventPayload"},
+                    "title": "RawEvent",
+                },
+                "SomeEvent": {
+                    "name": "SomeEvent",
+                    "payload": {"$ref": "#/components/schemas/SomeEvent"},
+                    "title": "SomeEvent",
+                },
+            },
+            "schemas": {
+                "RawEventPayload": {"title": "RawEventPayload", "type": "string"},
+                "SomeEvent": {
+                    "properties": {"x": {"title": "X", "type": "string"}},
+                    "required": ["x"],
+                    "title": "SomeEvent",
+                    "type": "object",
+                },
+            },
+        },
+        "info": {"title": "EVKafka", "version": "0.1.0"},
+        "servers": {"broker-0": {"protocol": "kafka", "url": "url"}},
+    }
