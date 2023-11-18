@@ -129,10 +129,8 @@ class Schema(BaseModel):
     minLength: int | None = Field(default=None, ge=0)
     pattern: str | None = None
 
-    items: Union[
-        "SchemaOrBool", list["SchemaOrBool"]
-    ] | None = None  # 2020-12 new meaning
-    additionalItems: Union["SchemaOrBool", None] = None  # 2020-12 new meaning
+    items: Union["SchemaOrBool", list["SchemaOrBool"]] | None = None
+    additionalItems: Union["SchemaOrBool", None] = None
     maxItems: int | None = Field(default=None, ge=0)
     minItems: int | None = Field(default=None, ge=0)
     uniqueItems: bool | None = None
@@ -144,9 +142,7 @@ class Schema(BaseModel):
     properties: dict[str, "SchemaOrBool"] | None = None
     patternProperties: dict[str, "SchemaOrBool"] | None = None
     additionalProperties: Union["SchemaOrBool", None] = None
-    dependencies: dict[
-        str, Union[set[str], "SchemaOrBool"]
-    ] | None = None  # 2019-09: split
+    dependencies: dict[str, Union[set[str], "SchemaOrBool"]] | None = None
     propertyNames: Union["SchemaOrBool", None] = None
 
     if_: Union["SchemaOrBool", None] = Field(default=None, alias="if")
@@ -162,9 +158,7 @@ class Schema(BaseModel):
     contentEncoding: str | None = None
     contentMediaType: str | None = None
 
-    definitions: dict[
-        str, "SchemaOrBool"
-    ] | None = None  # renamed to $defs, see 2019-09
+    definitions: dict[str, "SchemaOrBool"] | None = None
 
     title: str | None = None
     description: str | None = None

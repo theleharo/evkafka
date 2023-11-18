@@ -8,7 +8,7 @@ import uuid
 from types import FrameType
 
 from .asyncapi.server import AsyncApiServer
-from .asyncapi.spec import get_openapi_spec
+from .asyncapi.spec import get_asyncapi_spec
 from .config import ConsumerConfig
 from .consumer import EVKafkaConsumer
 from .context import AppContext, ConsumerCtx, Context, HandlerApp, MessageCtx
@@ -34,8 +34,8 @@ class EVKafkaApp:
         contact: dict[str, str] | None = None,
         license_info: dict[str, str] | None = None,
         expose_asyncapi: bool = False,
-        asyncapi_host: str = '0.0.0.0',
-        asyncapi_port: str = '8080',
+        asyncapi_host: str = "0.0.0.0",
+        asyncapi_port: int = 8080,
     ) -> None:
         self.force_exit = False
         self.should_exit = False
@@ -66,7 +66,7 @@ class EVKafkaApp:
         self.terms_of_service = terms_of_service
         self.contact = contact
         self.license_info = license_info
-        self.asyncapi_schema: dict[str, typing.Any] = {}
+        self.asyncapi_schema: str | None = None
         self.expose_asyncapi = expose_asyncapi
         self.asyncapi_host = asyncapi_host
         self.asyncapi_port = asyncapi_port
@@ -111,7 +111,9 @@ class EVKafkaApp:
         consumer_configs = self.collect_consumer_configs()
 
         if self.expose_asyncapi:
-            self._asyncapi_server = AsyncApiServer(self.asyncapi(), host=self.asyncapi_host, port=self.asyncapi_port)
+            self._asyncapi_server = AsyncApiServer(
+                self.asyncapi(), host=self.asyncapi_host, port=self.asyncapi_port
+            )
             await self._asyncapi_server.start()
 
         for _name, config_items in consumer_configs.items():
@@ -203,6 +205,7 @@ class EVKafkaApp:
             )
             return await app(context)
 
+        assert name not in self._consumer_configs, "Consumer names must be unique"
         name = name or str(uuid.uuid4())
 
         self._consumer_configs[name] = {
@@ -211,9 +214,9 @@ class EVKafkaApp:
             "messages_cb": messages_cb,
         }
 
-    def asyncapi(self) -> dict[str, typing.Any]:
+    def asyncapi(self) -> str:
         if not self.asyncapi_schema:
-            self.asyncapi_schema = get_openapi_spec(
+            self.asyncapi_schema = get_asyncapi_spec(
                 title=self.title,
                 version=self.version,
                 consumer_configs=self.collect_consumer_configs(),

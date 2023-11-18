@@ -53,6 +53,16 @@ def config_post(config):
 
 
 @pytest.fixture()
+def config_out():
+    return {
+        "bootstrap_servers": "kafka:9092",
+        "client_id": "client_id",
+        "max_poll_interval_ms": 20000,
+        "rebalance_timeout_ms": 20000,
+    }
+
+
+@pytest.fixture()
 def record():
     return ConsumerRecord(
         topic="topic",
@@ -95,40 +105,41 @@ def commit(mocker):
 
 
 async def test_consumer_excludes_topics_from_config(
-    aio_consumer_cls, config, messages_cb
+    aio_consumer_cls, config, messages_cb, config_out
 ):
     EVKafkaConsumer(config=config, messages_cb=messages_cb)
-    config.pop("topics")
-    aio_consumer_cls.assert_called_once_with(**config, enable_auto_commit=False)
+    aio_consumer_cls.assert_called_once_with(**config_out, enable_auto_commit=False)
 
 
 async def test_consumer_sets_client_id_if_not_supplied(
-    aio_consumer_cls, config, messages_cb
+    aio_consumer_cls, config, messages_cb, config_out
 ):
     config.pop("client_id")
     EVKafkaConsumer(config=config, messages_cb=messages_cb)
-    config.pop("topics")
+    config_out.pop("client_id")
     aio_consumer_cls.assert_called_once_with(
-        **config, client_id="evkafka", enable_auto_commit=False
+        **config_out, client_id="evkafka", enable_auto_commit=False
     )
 
 
-async def test_consumer_sets_pre_commit_mode(aio_consumer_cls, config, messages_cb):
+async def test_consumer_sets_pre_commit_mode(
+    aio_consumer_cls, config, messages_cb, config_out
+):
     EVKafkaConsumer(
         config=dict(**config, auto_commit_mode="pre-commit"), messages_cb=messages_cb
     )
 
-    config.pop("topics")
-    aio_consumer_cls.assert_called_once_with(**config, enable_auto_commit=True)
+    aio_consumer_cls.assert_called_once_with(**config_out, enable_auto_commit=True)
 
 
-async def test_consumer_sets_post_commit_mode(aio_consumer_cls, config, messages_cb):
+async def test_consumer_sets_post_commit_mode(
+    aio_consumer_cls, config, messages_cb, config_out
+):
     EVKafkaConsumer(
         config=dict(**config, auto_commit_mode="post-commit"), messages_cb=messages_cb
     )
 
-    config.pop("topics")
-    aio_consumer_cls.assert_called_once_with(**config, enable_auto_commit=False)
+    aio_consumer_cls.assert_called_once_with(**config_out, enable_auto_commit=False)
 
 
 async def test_consumer_starts_and_stops(mocker, aio_consumer, config_pre, messages_cb):

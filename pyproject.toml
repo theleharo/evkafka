@@ -56,6 +56,9 @@ ignore = ["E501", "PLR2004"]
 [tool.ruff.pylint]
 max-args = 20
 
+[tool.ruff.lint.mccabe]
+max-complexity = 11
+
 [tool.mypy]
 disallow_untyped_defs = true
 disallow_untyped_decorators = true
