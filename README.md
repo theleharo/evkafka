@@ -15,6 +15,7 @@ It is based on asynchronous kafka client library
 - Extensible through consumer middleware
 - Lifespan
 - At-Least-Once/At-Most-Once delivery
+- AsyncAPI documentation
 
 ## Installation
 
@@ -22,26 +23,41 @@ It is based on asynchronous kafka client library
 
 ## Basic consumer
 ```python
+from pydantic import BaseModel
+
 from evkafka import EVKafkaApp
+from evkafka.config import ConsumerConfig
 
 
-config = {
-    "topics": ["topic"],
+class FooEventPayload(BaseModel):
+    user_name: str
+
+
+config: ConsumerConfig = {
     "bootstrap_servers": "kafka:9092",
     "group_id": "test",
+    "topics": ["topic"],
 }
 
-app = EVKafkaApp(config=config)
+app = EVKafkaApp(
+    config=config,
+    expose_asyncapi=True,
+)
 
 
 @app.event("FooEvent")
-async def foo_handler(event: dict) -> None:
+async def foo_handler(event: FooEventPayload) -> None:
     print(event)
 
 
 if __name__ == "__main__":
     app.run()
 ```
+
+## AsyncAPI documentation
+
+![Screenshot](docs/img/asyncapi.png)
+
 
 ## Basic producer
 ```python
@@ -62,7 +78,7 @@ async def produce(event: dict, event_type: str):
         )
 
 if __name__ == "__main__":
-    asyncio.run(produce({"data": "value"}, "FooEvent"))
+    asyncio.run(produce({"user_name": "EVKafka"}, "FooEvent"))
 ```
 
 More details can be found in the [documentation](https://evkafka.readthedocs.io/)
