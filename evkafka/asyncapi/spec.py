@@ -1,3 +1,4 @@
+import re
 from collections import defaultdict
 from typing import Annotated, Any, Iterable, Type, cast
 
@@ -20,6 +21,12 @@ def get_schemas_from_model_types(
     return top_level_schema.get("$defs", None)
 
 
+def to_ref(name: str | None) -> str | None:
+    if not name:
+        return name
+    return re.sub(r"[^A-Za-z0-9_\-]", "-", name)
+
+
 def get_brokers(
     consumer_configs: dict[str, Any]
 ) -> tuple[dict[str, str], dict[str, Any]]:
@@ -33,13 +40,15 @@ def get_brokers(
         broker_url = config.root["bootstrap_servers"]
 
         if broker_url not in refs_by_url:
-            broker_ref = config.root.get("name") or f"broker-{broker_id}"
+            broker_ref = (
+                to_ref(config.root.get("cluster_name")) or f"broker-{broker_id}"
+            )
             broker_id += 1
 
             brokers[broker_ref] = {
                 "url": broker_url,
                 "protocol": "kafka",
-                "description": config.root.get("description"),
+                "description": config.root.get("cluster_description"),
             }
             refs_by_url[broker_url] = broker_ref
             refs[name] = broker_ref
@@ -50,7 +59,7 @@ def get_brokers(
                 config.root.get("name", broker_ref) == broker_ref
             ), "Brokers with the same url have different name"
             assert broker["description"] == config.root.get(
-                "description"
+                "cluster_description"
             ), "Brokers with the same url have different description"
             refs[name] = broker_ref
 
@@ -86,7 +95,7 @@ def get_topics(
 
             topics[topic_ref] = {
                 "description": description,
-                "subscribe": {"message": {"oneOf": []}},
+                "publish": {"message": {"oneOf": []}},
             }
             refs[name].add(topic_ref)
 
@@ -153,7 +162,7 @@ def get_asyncapi_spec(
             type_models[event_ref] = event_model, handle
 
             for topic in event_topics:
-                channels[topic]["subscribe"]["message"]["oneOf"].append(
+                channels[topic]["publish"]["message"]["oneOf"].append(
                     {"$ref": f"#/components/messages/{event_ref}"}
                 )
 

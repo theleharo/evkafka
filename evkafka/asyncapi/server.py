@@ -23,7 +23,7 @@ def get_asyncapi_renderer() -> str:
             },
             config: {
               show: {
-                sidebar: true,
+                sidebar: false,
               }
             },
           }, document.getElementById('asyncapi'));

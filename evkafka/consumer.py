@@ -44,11 +44,13 @@ class EVKafkaConsumer:
         loop_interval_ms: int = 1000,
         batch_max_size: int = 1,
     ) -> None:
-        config = config.copy()
         self._messages_cb = messages_cb
         self._loop_interval_ms = loop_interval_ms
         self._batch_max_size = batch_max_size
 
+        config = config.copy()
+        config.pop('cluster_name', None)
+        config.pop('cluster_description', None)
         config_extra: dict[str, typing.Any] = {}
         topics: list[str] | list[TopicConfig] = config.pop("topics")
         assert topics, "Topics list cannot be empty"

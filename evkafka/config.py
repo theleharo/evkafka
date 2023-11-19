@@ -82,11 +82,11 @@ class BrokerConfig(TypedDict, total=False):
     (See :mod:`kafka.oauth.abstract`). Default: None.
     """
 
-    name: str | None
-    """ Optional name for this broker. Used in AsyncAPI documentation. """
+    cluster_name: str | None
+    """ Optional name for brokers. Used in AsyncAPI documentation. """
 
-    description: str | None
-    """ Optional description for this broker. Used in AsyncAPI documentation. """
+    cluster_description: str | None
+    """ Optional description for brokers. Used in AsyncAPI documentation. """
 
 
 BrokerConfigModel = RootModel[BrokerConfig]

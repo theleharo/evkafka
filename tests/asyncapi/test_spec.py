@@ -73,8 +73,8 @@ def test_get_brokers_single_broker():
         "default": {
             "config": {
                 "bootstrap_servers": "url",
-                "name": "broker",
-                "description": "Description",
+                "cluster_name": "broker",
+                "cluster_description": "Description",
             }
         }
     }
@@ -90,15 +90,15 @@ def test_get_brokers_many_brokers():
         "default": {
             "config": {
                 "bootstrap_servers": "url",
-                "name": "broker",
-                "description": "Description",
+                "cluster_name": "broker",
+                "cluster_description": "Description",
             }
         },
         "alt": {
             "config": {
                 "bootstrap_servers": "url2",
-                "name": "broker2",
-                "description": "Description2",
+                "cluster_name": "broker2",
+                "cluster_description": "Description2",
             }
         },
     }
@@ -124,15 +124,15 @@ def test_get_brokers_merge_same_broker():
         "default": {
             "config": {
                 "bootstrap_servers": "url",
-                "name": "broker",
-                "description": "Description",
+                "cluster_name": "broker",
+                "cluster_description": "Description",
             }
         },
         "alt": {
             "config": {
                 "bootstrap_servers": "url",
-                "name": "broker",
-                "description": "Description",
+                "cluster_name": "broker",
+                "cluster_description": "Description",
             }
         },
     }
@@ -157,7 +157,7 @@ def test_get_topics_single_topic():
                 "a topic",
             },
         },
-        {"a topic": {"description": "desc", "subscribe": {"message": {"oneOf": []}}}},
+        {"a topic": {"description": "desc", "publish": {"message": {"oneOf": []}}}},
     )
 
 
@@ -175,8 +175,8 @@ def test_get_topics_combined():
             "alt": {"a topic", "b topic"},
         },
         {
-            "a topic": {"description": None, "subscribe": {"message": {"oneOf": []}}},
-            "b topic": {"description": None, "subscribe": {"message": {"oneOf": []}}},
+            "a topic": {"description": None, "publish": {"message": {"oneOf": []}}},
+            "b topic": {"description": None, "publish": {"message": {"oneOf": []}}},
         },
     )
 
@@ -187,7 +187,7 @@ def test_asyncapi_int(app):
         "channels": {
             "topic": {
                 "servers": ["broker-0"],
-                "subscribe": {
+                "publish": {
                     "message": {
                         "oneOf": [
                             {"$ref": "#/components/messages/SomeEvent"},
