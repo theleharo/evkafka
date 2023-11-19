@@ -49,8 +49,8 @@ class EVKafkaConsumer:
         self._batch_max_size = batch_max_size
 
         config = config.copy()
-        config.pop('cluster_name', None)
-        config.pop('cluster_description', None)
+        config.pop("cluster_name", None)
+        config.pop("cluster_description", None)
         config_extra: dict[str, typing.Any] = {}
         topics: list[str] | list[TopicConfig] = config.pop("topics")
         assert topics, "Topics list cannot be empty"
