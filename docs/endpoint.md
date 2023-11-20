@@ -4,7 +4,7 @@ In order to handle an event you need to define a handler function or an *endpoin
 
 ```python
 @app.event('Event')
-async def handle_event(event: EventModel) -> None:
+async def handle_event(event: EventPayload) -> None:
     await do_something_with(event)
 ```
 
@@ -50,11 +50,11 @@ current event:
 ```python
 from evkafka import Request
 
-from models import EventModel
+from models import EventPayload
 
 
 @app.event('Event')
-async def handle_event(event: EventModel, request: Request) -> None:
+async def handle_event(event: EventPayload, request: Request) -> None:
     assert 'Some-Header' in request.headers
 ```
 

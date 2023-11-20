@@ -13,14 +13,14 @@ In endpoints.py:
 ```python
 from evkafka import Handler
 
-from models import EventModel
+from models import EventPayload
 
 
 handler = Handler()
 
 
 @handler.event('Event')
-def handle_event(e: EventModel) -> None:
+def handle_event(e: EventPayload) -> None:
     ...
 ```
 
