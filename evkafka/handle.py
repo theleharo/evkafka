@@ -1,15 +1,12 @@
 from functools import wraps
-from typing import Any, Awaitable, Callable, Type, cast
+from typing import Any, Awaitable, Callable, cast
+
+from pydantic import BaseModel
 
 from .context import Context, Request
 from .dependencies import EndpointDependencies, get_dependencies
 from .types import F
 from .utils import exec_endpoint
-
-try:
-    from pydantic import BaseModel  # type: ignore
-except ModuleNotFoundError:
-    BaseModel: Type = None  # type: ignore
 
 
 class Handle:
