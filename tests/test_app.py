@@ -56,7 +56,7 @@ async def test_default_consumer_is_added_to_configs():
         pass
 
     async with run_app(app):
-        configs = app.collect_consumer_configs()
+        configs = app.consumer_configs
         assert "some" in configs
 
 

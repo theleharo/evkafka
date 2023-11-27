@@ -13,6 +13,7 @@ from evkafka.lifespan import LifespanManager
 
 class TestClient:
     _loop: AbstractEventLoop
+    _lifespan_manager: LifespanManager
 
     def __init__(self, app: EVKafkaApp) -> None:
         self.app = app
@@ -60,7 +61,7 @@ class TestClient:
         asyncio.run_coroutine_threadsafe(send(), self._loop)
 
     def get_consumer_config(self, name: str | None) -> dict[str, Any]:
-        configs = self.app.collect_consumer_configs()
+        configs = self.app.consumer_configs
         if len(configs) == 0:
             raise AssertionError("No consumers registered")
 

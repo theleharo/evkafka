@@ -9,12 +9,14 @@ from types import FrameType
 
 from .asyncapi.server import AsyncApiServer
 from .asyncapi.spec import get_asyncapi_spec
-from .config import ConsumerConfig
+from .config import ConsumerConfig, ProducerConfig
 from .consumer import EVKafkaConsumer
 from .context import AppContext, ConsumerCtx, Context, HandlerApp, MessageCtx
 from .handler import Handler
 from .lifespan import LifespanManager
 from .middleware import Middleware, default_stack
+from .producer import EVKafkaProducer
+from .sender import Sender
 from .types import Lifespan, Wrapped
 
 logger = logging.getLogger(__name__)
@@ -51,10 +53,12 @@ class EVKafkaApp:
             }
 
         self._consumer_configs: dict[str, dict[str, typing.Any]] = {}
-        self._consumers_collected = False
+        self._producer_configs: dict[str, dict[str, typing.Any]] = {}
+        self._configs_collected = False
 
         self._tasks: set[asyncio.Task[typing.Any]] = set()
         self._consumers: set[EVKafkaConsumer] = set()
+        self._producers: set[EVKafkaProducer] = set()
         self._app_context = AppContext()
         self.middleware = middleware or default_stack
         self.lifespan = lifespan
@@ -108,26 +112,35 @@ class EVKafkaApp:
             return
         self._app_context.state = self._lifespan_manager.state
 
-        consumer_configs = self.collect_consumer_configs()
+        await self._startup_producers()
+        await self._startup_consumers()
 
         if self.expose_asyncapi:
             self._asyncapi_server = AsyncApiServer(
                 self.asyncapi(), host=self.asyncapi_host, port=self.asyncapi_port
             )
             await self._asyncapi_server.start()
+        self.started = True
 
-        for _name, config_items in consumer_configs.items():
+    async def _startup_consumers(self) -> None:
+        for config_items in self.consumer_configs.values():
             consumer = EVKafkaConsumer(
                 config=config_items["config"],
                 messages_cb=config_items["messages_cb"],
             )
             self._consumers.add(consumer)
             self._tasks.add(consumer.startup())
-        self.started = True
 
-    def collect_consumer_configs(self) -> dict[str, dict[str, typing.Any]]:
-        if self._consumers_collected:
-            return self._consumer_configs
+    async def _startup_producers(self) -> None:
+        for config_items in self.producer_configs.values():
+            producer = EVKafkaProducer(config=config_items["config"])
+            config_items["sender"].add_producer_callback(producer)
+            self._producers.add(producer)
+            await producer.start()
+
+    def _collect_configs(self) -> None:
+        if self._configs_collected:
+            return
 
         if self._default_consumer and self._default_handler:
             self.add_consumer(
@@ -135,8 +148,19 @@ class EVKafkaApp:
                 handler=self._default_handler,
                 name=self._default_consumer["name"],
             )
-        self._consumers_collected = True
+        self._configs_collected = True
+
+    @property
+    def consumer_configs(self) -> dict[str, dict[str, typing.Any]]:
+        if not self._configs_collected:
+            self._collect_configs()
         return self._consumer_configs
+
+    @property
+    def producer_configs(self) -> dict[str, dict[str, typing.Any]]:
+        if not self._configs_collected:
+            self._collect_configs()
+        return self._producer_configs
 
     async def main(self) -> None:
         while not self.should_exit:
@@ -155,8 +179,15 @@ class EVKafkaApp:
         if self.force_exit:
             return
 
-        await asyncio.gather(*(consumer.shutdown() for consumer in self._consumers))
+        await self._shutdown_consumers()
+        await self._shutdown_producers()
         await self._lifespan_manager.stop()
+
+    async def _shutdown_consumers(self) -> None:
+        await asyncio.gather(*(consumer.shutdown() for consumer in self._consumers))
+
+    async def _shutdown_producers(self) -> None:
+        await asyncio.gather(*(producer.stop() for producer in self._producers))
 
     def event(
         self,
@@ -183,7 +214,7 @@ class EVKafkaApp:
         handler: HandlerApp,
         name: str | None = None,
     ) -> None:
-        if self._consumers_collected:
+        if self._configs_collected:
             raise RuntimeError(
                 "Cannot add another consumer after an application has started"
             )
@@ -214,12 +245,27 @@ class EVKafkaApp:
             "messages_cb": messages_cb,
         }
 
+    def add_producer(
+        self, config: ProducerConfig, sender: Sender, name: str | None = None
+    ) -> None:
+        if self._configs_collected:
+            raise RuntimeError(
+                "Cannot add another producer after an application has started"
+            )
+        assert name not in self._producer_configs, "Producer names must be unique"
+        name = name or str(uuid.uuid4())
+
+        self._producer_configs[name] = {
+            "config": config,
+            "sender": sender,
+        }
+
     def asyncapi(self) -> str:
         if not self.asyncapi_schema:
             self.asyncapi_schema = get_asyncapi_spec(
                 title=self.title,
                 version=self.version,
-                consumer_configs=self.collect_consumer_configs(),
+                consumer_configs=self.consumer_configs,
                 description=self.description,
                 terms_of_service=self.terms_of_service,
                 contact=self.contact,

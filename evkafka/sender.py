@@ -1,8 +1,8 @@
 import asyncio
 from typing import Any, Callable, Protocol, cast
 
-from evkafka import EVKafkaProducer
-from evkafka.types import F
+from .producer import EVKafkaProducer
+from .types import F
 
 
 class SendEvent(Protocol):
