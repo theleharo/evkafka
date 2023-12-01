@@ -39,3 +39,4 @@ markdown_extensions:
 
 repo_url: https://github.com/theleharo/evkafka
 repo_name: theleharo/evkafka
+site_url: https://evkafka.readthedocs.io/en/latest/
