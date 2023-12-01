@@ -68,11 +68,9 @@ http://localhost:8080.
 ### Add a producer
 
 ```python
-from contextlib import asynccontextmanager
-
 from pydantic import BaseModel
 
-from evkafka import EVKafkaApp, EVKafkaProducer, Handler, Request
+from evkafka import EVKafkaApp, Handler, Request, Sender
 from evkafka.config import ConsumerConfig, BrokerConfig, ProducerConfig
 
 
@@ -84,6 +82,13 @@ class BarEventPayload(BaseModel):
     user_name: str
     message: str
 
+sender = Sender()
+
+
+@sender.event('BarEvent')
+async def send_bar(event: BarEventPayload) -> None:
+    pass
+
 
 handler = Handler()
 
@@ -92,18 +97,12 @@ handler = Handler()
 async def foo_handler(event: FooEventPayload, request: Request) -> None:
     print('Received FooEvent', event)
     new_event = BarEventPayload(user_name=event.user_name, message='hello')
-    await request.state.producer.send_event(new_event, 'BarEvent')
+    await send_bar(new_event)
 
 
 @handler.event("BarEvent")
 async def bar_handler(event: BarEventPayload) -> None:
     print('Received BarEvent', event)
-
-
-@asynccontextmanager
-async def lifespan():
-    async with EVKafkaProducer(producer_config) as producer:
-        yield {'producer': producer}
 
 
 if __name__ == "__main__":
@@ -122,20 +121,14 @@ if __name__ == "__main__":
         **broker_config
     }
 
-    app = EVKafkaApp(
-        expose_asyncapi=True,
-        lifespan=lifespan
-    )
+    app = EVKafkaApp(expose_asyncapi=True)
     app.add_consumer(consumer_config, handler)
+    app.add_producer(producer_config, sender)
     app.run()
 
 ```
 
 More details can be found in the [documentation](https://evkafka.readthedocs.io/)
-
-## Status
-
-The framework is in alpha.
 
 ## License
 
