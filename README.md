@@ -68,10 +68,13 @@ http://localhost:8080.
 ### Add a producer
 
 ```python
-from pydantic import BaseModel
-
 from evkafka import EVKafkaApp, Handler, Request, Sender
 from evkafka.config import ConsumerConfig, BrokerConfig, ProducerConfig
+from pydantic import BaseModel
+
+
+sender = Sender()
+handler = Handler()
 
 
 class FooEventPayload(BaseModel):
@@ -82,15 +85,10 @@ class BarEventPayload(BaseModel):
     user_name: str
     message: str
 
-sender = Sender()
-
 
 @sender.event('BarEvent')
 async def send_bar(event: BarEventPayload) -> None:
     pass
-
-
-handler = Handler()
 
 
 @handler.event("FooEvent")
@@ -125,7 +123,6 @@ if __name__ == "__main__":
     app.add_consumer(consumer_config, handler)
     app.add_producer(producer_config, sender)
     app.run()
-
 ```
 
 More details can be found in the [documentation](https://evkafka.readthedocs.io/)

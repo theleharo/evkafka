@@ -131,12 +131,13 @@ if __name__ == "__main__":
 A producer may be instantiated within a consumer app and used to produce new events:
 
 ```python
-from contextlib import asynccontextmanager
-
+from evkafka import EVKafkaApp, Handler, Request, Sender
+from evkafka.config import ConsumerConfig, BrokerConfig, ProducerConfig
 from pydantic import BaseModel
 
-from evkafka import EVKafkaApp, EVKafkaProducer, Handler, Request
-from evkafka.config import ConsumerConfig, BrokerConfig, ProducerConfig
+
+sender = Sender()
+handler = Handler()
 
 
 class FooEventPayload(BaseModel):
@@ -148,25 +149,21 @@ class BarEventPayload(BaseModel):
     message: str
 
 
-handler = Handler()
+@sender.event('BarEvent')
+async def send_bar(event: BarEventPayload) -> None:
+    pass
 
 
 @handler.event("FooEvent")
 async def foo_handler(event: FooEventPayload, request: Request) -> None:
     print('Received FooEvent', event)
     new_event = BarEventPayload(user_name=event.user_name, message='hello')
-    await request.state.producer.send_event(new_event, 'BarEvent')
+    await send_bar(new_event)
 
 
 @handler.event("BarEvent")
 async def bar_handler(event: BarEventPayload) -> None:
     print('Received BarEvent', event)
-
-
-@asynccontextmanager
-async def lifespan():
-    async with EVKafkaProducer(producer_config) as producer:
-        yield {'producer': producer}
 
 
 if __name__ == "__main__":
@@ -185,10 +182,8 @@ if __name__ == "__main__":
         **broker_config
     }
 
-    app = EVKafkaApp(
-        expose_asyncapi=True,
-        lifespan=lifespan
-    )
+    app = EVKafkaApp(expose_asyncapi=True)
     app.add_consumer(consumer_config, handler)
+    app.add_producer(producer_config, sender)
     app.run()
 ```
