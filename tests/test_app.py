@@ -4,7 +4,8 @@ from contextlib import asynccontextmanager
 
 import pytest
 
-from evkafka import EVKafkaApp, Handler, Request
+from evkafka import EVKafkaApp, EVKafkaProducer, Handler, Request
+from evkafka.sender import Sender
 from evkafka.state import State
 from tests.utils import TestConsumer
 
@@ -23,6 +24,11 @@ def mocked_consumer(mocker):
 
     c.side_effect = make_consumer
     return inst
+
+
+@pytest.fixture()
+def producer_cls(mocker):
+    return mocker.patch("evkafka.app.EVKafkaProducer", spec=EVKafkaProducer)
 
 
 @pytest.fixture()
@@ -230,3 +236,42 @@ async def test_app_asyncapi_exposition(asyncapi_server):
         asyncapi_server.return_value.start.assert_awaited_once()
 
     asyncapi_server.return_value.stop.assert_awaited_once()
+
+
+async def test_added_producer_starts_and_stops(mocker, producer_cls):
+    sender = Sender()
+
+    @sender.event("Event")
+    async def send(e: dict):  # noqa: ARG001
+        pass
+
+    app = EVKafkaApp()
+    config = mocker.Mock()
+    app.add_producer(config=config, sender=sender)
+
+    async with run_app(app):
+        producer_cls.assert_called_once_with(config=config)
+        assert sender.producer == producer_cls.return_value
+        producer_cls.return_value.start.assert_awaited_once()
+        producer_cls.return_value.stop.assert_not_awaited()
+
+    producer_cls.return_value.stop.assert_awaited_once()
+
+
+@pytest.mark.usefixtures("producer_cls")
+async def test_producer_cannot_be_added_after_start(mocker):
+    sender = Sender()
+
+    @sender.event("Event")
+    async def send(e: dict):  # noqa: ARG001
+        pass
+
+    app = EVKafkaApp()
+    app.add_producer(config=mocker.Mock(), sender=sender, name="ok")
+
+    async with run_app(app):
+        with pytest.raises(RuntimeError, match="add another producer"):
+            app.add_producer(config=mocker.Mock(), sender=mocker.Mock(), name="bad")
+
+    assert "ok" in app.producer_configs
+    assert "bad" not in app.producer_configs

@@ -139,9 +139,6 @@ class EVKafkaApp:
             await producer.start()
 
     def _collect_configs(self) -> None:
-        if self._configs_collected:
-            return
-
         if self._default_consumer and self._default_handler:
             self.add_consumer(
                 config=self._default_consumer["config"],
