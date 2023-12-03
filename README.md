@@ -4,9 +4,9 @@
 [![Coverage](https://coverage-badge.samuelcolvin.workers.dev/theleharo/evkafka.svg)](https://coverage-badge.samuelcolvin.workers.dev/redirect/theleharo/evkafka)
 [![PyPI - Version](https://img.shields.io/pypi/v/evkafka)](https://pypi.org/project/evkafka/)
 
-**EVKafka** is a small framework for building event driven
-microservices with Apache Kafka and Python.
-It is based on asynchronous kafka client library
+**EVKafka** is a lightweight framework for building 
+event-driven microservices with Apache Kafka and Python.
+It is based on the asynchronous Kafka client library 
 [aiokafka](https://aiokafka.readthedocs.io/en/stable/).
 
 ## Features
@@ -15,8 +15,8 @@ It is based on asynchronous kafka client library
 - Sync/async handlers are supported
 - Extensible through consumer middleware
 - Lifespan
-- At-Least-Once/At-Most-Once delivery
-- Automatic API documentation
+- At-Least-Once/At-Most-Once event delivery guarantees
+- Automatic API documentation generation
 
 ## Installation
 

@@ -1,8 +1,5 @@
 # Consumers
 
-
-## Consumer configuration
-
 Consumer configuration is a dictionary containing consumer settings.
 ```python
 from evkafka.config import ConsumerConfig

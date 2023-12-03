@@ -1,12 +1,13 @@
 # Welcome to EVKafka
 
-Handle kafka events easy.
+Handle kafka events made easy.
 
-**EVKafka** is a small framework for building event driven microservices 
-with Apache Kafka and Python. It is based on asynchronous kafka client library 
+**EVKafka** is a lightweight framework for building 
+event-driven microservices with Apache Kafka and Python.
+It is based on the asynchronous Kafka client library 
 [aiokafka](https://aiokafka.readthedocs.io/en/stable/).
 
-Focus on event handling and the framework takes the rest.
+Focus on event handling while the framework takes care of the rest.
 
 ## Features
 
@@ -14,8 +15,8 @@ Focus on event handling and the framework takes the rest.
 - Sync/async handlers are supported
 - Extensible through consumer middleware
 - Lifespan
-- At-Least-Once/At-Most-Once delivery
-- Automatic API documentation
+- At-Least-Once/At-Most-Once event delivery guarantees
+- Automatic API documentation generation
 
 
 ## Installation
@@ -59,9 +60,10 @@ if __name__ == "__main__":
     app.run()
 ```
 
-The application connects to kafka broker and starts to read kafka messages. As soon as a message
-of type `FooEvent` is received the app calls the handler function `foo_handler` with 
-the message object in `event` parameter.
+The application connects to the Kafka broker and begins 
+reading kafka messages. Once a message of type `FooEvent` 
+is received, the app calls the `foo_handler` handler function,
+passing the message object as the `event` parameter.
 
 > **Note**. Kafka broker should be available at `kafka:9092` to run the example. 
 
@@ -71,8 +73,10 @@ Automatic documentation (based on [AsyncAPI](https://www.asyncapi.com/)) is buil
 [http://localhost:8080](http://localhost:8080).
 ![Screenshot](img/asyncapi.png)
 
-In our example the topic becomes a channel `topic`. AsyncAPI describes the application
-from a client perspective, e.g. the application expects `FooEvent` to be published to the channel.
+In our example, the topic is represented as a channel 
+in the documentation. AsyncAPI describes the application 
+from a client perspective, specifying that the application 
+expects `FooEvent` to be published to the channel.
 
 ### Add another event
 It worth nothing to add another handler function to process different message type:
@@ -93,42 +97,10 @@ async def bar_handler(event: BarEventPayload) -> None:
 Restart your app. You should see an updated docs:
 ![Screenshot](img/asyncapi_2.png)
 
-### Build a producer app
-
-A helper class `EVKafkaProducer` may be used to produce events:
-
-```python
-import asyncio
-
-from evkafka import EVKafkaProducer
-from pydantic import BaseModel
-
-
-class FooEventPayload(BaseModel):
-    user_name: str
-
-    
-async def produce(event: BaseModel, event_type: str):
-    config = {
-        "topic": "topic", 
-        "bootstrap_servers": "kafka:9092"
-    }
-
-    async with EVKafkaProducer(config) as producer:
-        await producer.send_event(
-            event=event,
-            event_type=event_type,
-        )
-
-if __name__ == "__main__":
-    asyncio.run(produce(FooEventPayload(user_name="evkafka"), "FooEvent"))
-```
-
-> **Feature Note.** Documentation for produced events will be included in next releases
 
 ### Produce events with EVKafka
 
-A producer may be instantiated within a consumer app and used to produce new events:
+A producer may be instantiated within the app and used to produce new events:
 
 ```python
 from evkafka import EVKafkaApp, Handler, Request, Sender
@@ -187,3 +159,5 @@ if __name__ == "__main__":
     app.add_producer(producer_config, sender)
     app.run()
 ```
+
+> **Feature Note.** Documentation for produced events will be included in next releases

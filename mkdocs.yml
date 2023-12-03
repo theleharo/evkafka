@@ -20,8 +20,7 @@ theme:
 
 nav:
   - Overview: 'index.md'
-  - Endpoints: 'endpoint.md'
-  - Handlers: 'handlers.md'
+  - Endpoints: 'endpoints.md'
   - Consumers: 'consumers.md'
   - Producers: 'producers.md'
   - Lifespan: 'lifespan.md'
