@@ -127,7 +127,7 @@ async def send_bar(event: BarEventPayload) -> None:
 
 
 @handler.event("FooEvent")
-async def foo_handler(event: FooEventPayload, request: Request) -> None:
+async def foo_handler(event: FooEventPayload) -> None:
     print('Received FooEvent', event)
     new_event = BarEventPayload(user_name=event.user_name, message='hello')
     await send_bar(new_event)

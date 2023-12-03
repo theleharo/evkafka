@@ -1,4 +1,4 @@
-### Latest
+### 0.6.0 (2023-12-03)
 
 **Added**
  - Declarative definition of produced events via `Sender.event`
