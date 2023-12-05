@@ -5,7 +5,7 @@ In order to receive or send an event you need to define
 
 ## Inbound endpoint
 
-Indbound endpoints are functions that are executed when a consumer receives
+Inbound endpoints are functions that are executed when a consumer receives
 events. A `Handler` object is used to route events to their endpoints. 
 To indicate which function should handle a particular event, wrap it with 
 the `handler.event()` decorator:
