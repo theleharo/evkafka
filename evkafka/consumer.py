@@ -11,7 +11,7 @@ from aiokafka import (  # type: ignore
     ConsumerRecord,
     ConsumerStoppedError,
 )
-from kafka import TopicPartition
+from aiokafka.structs import TopicPartition
 
 from evkafka.config import ConsumerConfig, TopicConfig
 from evkafka.context import ConsumerCtx, MessageCtx

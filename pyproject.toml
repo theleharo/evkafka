@@ -1,6 +1,6 @@
 [project]
 name = "evkafka"
-version = "0.6.0"
+version = "0.6.1"
 authors = [
   { name="Aleksey Katichev", email="theleharo@gmail.com" },
 ]
@@ -65,7 +65,7 @@ disallow_untyped_decorators = true
 
 [[tool.mypy.overrides]]
 module = [
-    "aiokafka", "kafka"
+    "aiokafka", "aiokafka.structs"
 ]
 ignore_missing_imports = true
 

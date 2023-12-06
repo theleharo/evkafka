@@ -1,3 +1,8 @@
+### 0.6.1 (2023-12-06)
+
+**Fixed**
+- Remove incorrect import from non required dependency 'kafka-python'
+
 ### 0.6.0 (2023-12-03)
 
 **Added**
