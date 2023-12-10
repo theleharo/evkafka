@@ -1,14 +1,11 @@
 import inspect
 from dataclasses import dataclass
-from typing import Any, Type, get_origin
+from typing import Any, get_origin
+
+from pydantic import BaseModel
 
 from .context import Request
 from .types import F
-
-try:
-    from pydantic import BaseModel  # type: ignore
-except ModuleNotFoundError:
-    BaseModel: Type = None  # type: ignore
 
 
 @dataclass
