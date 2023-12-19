@@ -1,6 +1,7 @@
 import asyncio
 from typing import Any, Callable, Protocol, cast
 
+from .dependencies import get_dependencies
 from .producer import EVKafkaProducer
 from .types import F
 
@@ -30,9 +31,9 @@ class Source:
         description: str | None = None,
         tags: list[str] | None = None,
     ) -> None:
-        # analyze endpoint args: event input
         self.event_type = event_type
         self.endpoint = endpoint
+        self.endpoint_dependencies = get_dependencies(endpoint)
         self.send_cb = send_cb
         self.topic = topic
         self.summary = summary
@@ -43,10 +44,15 @@ class Source:
         if args:
             event = args[0]
         elif kwargs:
-            _, event = kwargs.popitem()
+            name, event = kwargs.popitem()
+            if name != self.endpoint_dependencies.payload_param_name:
+                raise TypeError(
+                    f"{self.endpoint.__name__}() got an unexpected keyword argument '{name}'"
+                )
         else:
             raise TypeError(
-                f"{self.endpoint.__name__}() missing 1 required positional argument: {{}}"
+                f"{self.endpoint.__name__}() missing 1 required positional argument: "
+                f"'{self.endpoint_dependencies.payload_param_name}'"
             )
 
         await self.send_cb(

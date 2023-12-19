@@ -47,7 +47,11 @@ async def test_sender_calls_producer_send(mocker):
 
 async def test_source_send_event_with_args(mocker):
     send_cb = mocker.AsyncMock()
-    s = Source(event_type="et", endpoint=mocker.Mock(), send_cb=send_cb, topic="t")
+
+    async def ep(e: dict):  # noqa:ARG001
+        pass
+
+    s = Source(event_type="et", endpoint=ep, send_cb=send_cb, topic="t")
 
     await s.send({"a": "b"})
 
@@ -56,7 +60,11 @@ async def test_source_send_event_with_args(mocker):
 
 async def test_source_send_event_with_kwargs(mocker):
     send_cb = mocker.AsyncMock()
-    s = Source(event_type="et", endpoint=mocker.Mock(), send_cb=send_cb, topic="t")
+
+    async def ep(e: dict):  # noqa:ARG001
+        pass
+
+    s = Source(event_type="et", endpoint=ep, send_cb=send_cb, topic="t")
 
     await s.send(e={"a": "b"})
 
@@ -65,9 +73,13 @@ async def test_source_send_event_with_kwargs(mocker):
 
 async def test_source_send_event_call_without_args_raises(mocker):
     send_cb = mocker.AsyncMock()
+
+    async def ep(e: dict):  # noqa:ARG001
+        pass
+
     s = Source(
         event_type="et",
-        endpoint=mocker.MagicMock(__name__="name"),
+        endpoint=ep,
         send_cb=send_cb,
         topic="t",
     )

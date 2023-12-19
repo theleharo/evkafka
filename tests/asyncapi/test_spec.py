@@ -3,12 +3,12 @@ import json
 import pytest
 from pydantic import BaseModel
 
-from evkafka import EVKafkaApp
-from evkafka.asyncapi.spec import get_asyncapi_spec, get_brokers, get_topics
+from evkafka import EVKafkaApp, Sender
+from evkafka.asyncapi.spec import get_asyncapi_spec, get_brokers, get_channels
 
 
 @pytest.fixture()
-def app():
+def consumer_app():
     app = EVKafkaApp(
         config={
             "bootstrap_servers": "url",
@@ -30,11 +30,38 @@ def app():
     return app
 
 
+@pytest.fixture()
+def producer_app():
+    app = EVKafkaApp()
+    sender = Sender()
+
+    class SomeEvent(BaseModel):
+        x: str
+
+    @sender.event("SomeEvent")
+    async def event_handler(e: SomeEvent):
+        assert e
+
+    @sender.event("RawEvent", topic="raw-topic")
+    async def raw_event_handler(e: str):
+        assert e
+
+    app.add_producer(
+        config={
+            "bootstrap_servers": "url",
+            "topic": "topic",
+        },
+        sender=sender,
+    )
+
+    return app
+
+
 def test_get_asyncapi_spec_info():
     spec = get_asyncapi_spec(
         title="title",
         version="version",
-        consumer_configs={},
+        configs={},
         description="description",
         terms_of_service="http://example.com",
         contact={"name": "contact_name"},
@@ -146,43 +173,126 @@ def test_get_brokers_merge_same_broker():
     )
 
 
-def test_get_topics_single_topic():
+def test_get_channels_single_topic_for_consumer():
     config = {
-        "default": {"config": {"topics": [{"name": "a topic", "description": "desc"}]}}
+        "default": {
+            "config": {"topics": [{"name": "a-topic", "description": "desc"}]},
+            "kind": "consumer",
+        }
     }
 
-    assert get_topics(config) == (
+    assert get_channels(config, {"default": "broker_ref"}) == (
         {
-            "default": {
-                "a topic",
-            },
-        },
-        {"a topic": {"description": "desc", "publish": {"message": {"oneOf": []}}}},
+            "a-topic": {
+                "description": "desc",
+                "publish": {"message": {"oneOf": []}},
+                "servers": {
+                    "broker_ref",
+                },
+            }
+        }
     )
 
 
-def test_get_topics_combined():
+def test_get_channels_set_topic_from_producer_config(mocker):
     config = {
-        "default": {"config": {"topics": ["a topic"]}},
-        "alt": {"config": {"topics": ["a topic", "b topic"]}},
+        "default": {
+            "config": {"topic": {"name": "a-topic", "description": "desc"}},
+            "kind": "producer",
+            "sender": mocker.Mock(sources=[mocker.Mock(topic=None)]),
+        }
     }
 
-    assert get_topics(config) == (
+    assert get_channels(config, {"default": "broker_ref"}) == (
         {
-            "default": {
-                "a topic",
-            },
-            "alt": {"a topic", "b topic"},
-        },
-        {
-            "a topic": {"description": None, "publish": {"message": {"oneOf": []}}},
-            "b topic": {"description": None, "publish": {"message": {"oneOf": []}}},
-        },
+            "a-topic": {
+                "description": "desc",
+                "subscribe": {"message": {"oneOf": []}},
+                "servers": {
+                    "broker_ref",
+                },
+            }
+        }
     )
 
 
-def test_asyncapi_int(app):
-    assert json.loads(app.asyncapi()) == {
+def test_get_channels_set_topic_from_source_config(mocker):
+    config = {
+        "default": {
+            "config": {},
+            "kind": "producer",
+            "sender": mocker.Mock(sources=[mocker.Mock(topic="src-topic")]),
+        }
+    }
+
+    assert get_channels(config, {"default": "broker_ref"}) == (
+        {
+            "src-topic": {
+                "description": None,
+                "subscribe": {"message": {"oneOf": []}},
+                "servers": {
+                    "broker_ref",
+                },
+            }
+        }
+    )
+
+
+def test_get_channels_for_consumer_combined():
+    config = {
+        "default": {"config": {"topics": ["a-topic"]}, "kind": "consumer"},
+        "alt": {"config": {"topics": ["a-topic", "b-topic"]}, "kind": "consumer"},
+    }
+
+    assert get_channels(config, {"default": "broker_ref", "alt": "alt_broker_ref"}) == (
+        {
+            "a-topic": {
+                "description": None,
+                "publish": {"message": {"oneOf": []}},
+                "servers": {"broker_ref", "alt_broker_ref"},
+            },
+            "b-topic": {
+                "description": None,
+                "publish": {"message": {"oneOf": []}},
+                "servers": {
+                    "alt_broker_ref",
+                },
+            },
+        }
+    )
+
+
+def test_get_channels_for_consumer_producer(mocker):
+    config = {
+        "default": {"config": {"topics": ["a-topic", "b-topic"]}, "kind": "consumer"},
+        "producer": {
+            "config": {},
+            "kind": "producer",
+            "sender": mocker.Mock(sources=[mocker.Mock(topic="a-topic")]),
+        },
+    }
+
+    assert get_channels(
+        config, {"default": "broker_ref", "producer": "prod_broker_ref"}
+    ) == (
+        {
+            "a-topic": {
+                "description": None,
+                "publish": {"message": {"oneOf": []}},
+                "subscribe": {"message": {"oneOf": []}},
+                "servers": {"broker_ref", "prod_broker_ref"},
+            },
+            "b-topic": {
+                "description": None,
+                "publish": {"message": {"oneOf": []}},
+                "servers": {"broker_ref"},
+            },
+        }
+    )
+
+
+def test_asyncapi_int_consumer(consumer_app):
+    assert json.loads(consumer_app.asyncapi()) == {
         "asyncapi": "2.6.0",
         "channels": {
             "topic": {
@@ -196,6 +306,51 @@ def test_asyncapi_int(app):
                     }
                 },
             }
+        },
+        "components": {
+            "messages": {
+                "RawEvent": {
+                    "name": "RawEvent",
+                    "payload": {"$ref": "#/components/schemas/RawEventPayload"},
+                    "title": "RawEvent",
+                },
+                "SomeEvent": {
+                    "name": "SomeEvent",
+                    "payload": {"$ref": "#/components/schemas/SomeEvent"},
+                    "title": "SomeEvent",
+                },
+            },
+            "schemas": {
+                "RawEventPayload": {"title": "RawEventPayload", "type": "string"},
+                "SomeEvent": {
+                    "properties": {"x": {"title": "X", "type": "string"}},
+                    "required": ["x"],
+                    "title": "SomeEvent",
+                    "type": "object",
+                },
+            },
+        },
+        "info": {"title": "EVKafka", "version": "0.1.0"},
+        "servers": {"broker-0": {"protocol": "kafka", "url": "url"}},
+    }
+
+
+def test_asyncapi_int_producer(producer_app):
+    assert json.loads(producer_app.asyncapi()) == {
+        "asyncapi": "2.6.0",
+        "channels": {
+            "raw-topic": {
+                "servers": ["broker-0"],
+                "subscribe": {
+                    "message": {"oneOf": [{"$ref": "#/components/messages/RawEvent"}]}
+                },
+            },
+            "topic": {
+                "servers": ["broker-0"],
+                "subscribe": {
+                    "message": {"oneOf": [{"$ref": "#/components/messages/SomeEvent"}]}
+                },
+            },
         },
         "components": {
             "messages": {

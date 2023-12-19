@@ -52,8 +52,7 @@ class EVKafkaApp:
                 "name": name,
             }
 
-        self._consumer_configs: dict[str, dict[str, typing.Any]] = {}
-        self._producer_configs: dict[str, dict[str, typing.Any]] = {}
+        self._configs: dict[str, dict[str, typing.Any]] = {}
         self._configs_collected = False
 
         self._tasks: set[asyncio.Task[typing.Any]] = set()
@@ -151,13 +150,13 @@ class EVKafkaApp:
     def consumer_configs(self) -> dict[str, dict[str, typing.Any]]:
         if not self._configs_collected:
             self._collect_configs()
-        return self._consumer_configs
+        return {k: v for k, v in self._configs.items() if v["kind"] == "consumer"}
 
     @property
     def producer_configs(self) -> dict[str, dict[str, typing.Any]]:
         if not self._configs_collected:
             self._collect_configs()
-        return self._producer_configs
+        return {k: v for k, v in self._configs.items() if v["kind"] == "producer"}
 
     async def main(self) -> None:
         while not self.should_exit:
@@ -233,10 +232,11 @@ class EVKafkaApp:
             )
             return await app(context)
 
-        assert name not in self._consumer_configs, "Consumer names must be unique"
+        assert name not in self._configs, "Consumer and producer names must be unique"
         name = name or str(uuid.uuid4())
 
-        self._consumer_configs[name] = {
+        self._configs[name] = {
+            "kind": "consumer",
             "config": config,
             "handler": handler,
             "messages_cb": messages_cb,
@@ -249,20 +249,22 @@ class EVKafkaApp:
             raise RuntimeError(
                 "Cannot add another producer after an application has started"
             )
-        assert name not in self._producer_configs, "Producer names must be unique"
+        assert name not in self._configs, "Consumer and producer names must be unique"
         name = name or str(uuid.uuid4())
 
-        self._producer_configs[name] = {
+        self._configs[name] = {
+            "kind": "producer",
             "config": config,
             "sender": sender,
         }
 
     def asyncapi(self) -> str:
         if not self.asyncapi_schema:
+            self._collect_configs()
             self.asyncapi_schema = get_asyncapi_spec(
                 title=self.title,
                 version=self.version,
-                consumer_configs=self.consumer_configs,
+                configs=self._configs,
                 description=self.description,
                 terms_of_service=self.terms_of_service,
                 contact=self.contact,

@@ -229,7 +229,7 @@ async def test_app_asyncapi_exposition(asyncapi_server):
 
     async with run_app(app):
         asyncapi_server.assert_called_once_with(
-            '{"asyncapi":"2.6.0","info":{"title":"EVKafka","version":"0.1.0"},"servers":{},"channels":{},"components":{"messages":{}}}',
+            app.asyncapi(),
             host="0.0.0.0",
             port=8080,
         )
