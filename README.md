@@ -24,51 +24,53 @@ It is based on the asynchronous Kafka client library
 
 ## Example
 
-### Create a consumer
+### Create a consumer app
 
 ```python
+from evkafka import EVKafkaApp, Handler
+from evkafka.config import ConsumerConfig, BrokerConfig
 from pydantic import BaseModel
 
-from evkafka import EVKafkaApp
-from evkafka.config import ConsumerConfig
+
+handler = Handler()
 
 
 class FooEventPayload(BaseModel):
     user_name: str
 
 
-config: ConsumerConfig = {
-    "bootstrap_servers": "kafka:9092",
-    "group_id": "test",
-    "topics": ["topic"],
-}
-
-app = EVKafkaApp(
-    config=config,
-    expose_asyncapi=True,
-)
-
-
-@app.event("FooEvent")
+@handler.event("FooEvent")
 async def foo_handler(event: FooEventPayload) -> None:
-    print(event)
+    print('Received FooEvent', event)
 
 
 if __name__ == "__main__":
+    broker_config: BrokerConfig = {
+        "bootstrap_servers": "kafka:9092"
+    }
+
+    consumer_config: ConsumerConfig = {
+        "group_id": "test",
+        "topics": ["src-topic"],
+        **broker_config
+    }
+
+    app = EVKafkaApp(expose_asyncapi=True)
+    app.add_consumer(consumer_config, handler)
     app.run()
 ```
 
-### Explore API documentation
+### Explore API docs
 
 Automatic documentation (based on [AsyncAPI](https://www.asyncapi.com/)) is build and served at
 http://localhost:8080.
 
-![Screenshot](docs/img/asyncapi.png)
+![Screenshot](docs/img/docs_1.png)
 
-### Add a producer
+### Add a producer to the app
 
 ```python
-from evkafka import EVKafkaApp, Handler, Request, Sender
+from evkafka import EVKafkaApp, Handler, Sender
 from evkafka.config import ConsumerConfig, BrokerConfig, ProducerConfig
 from pydantic import BaseModel
 
@@ -98,11 +100,6 @@ async def foo_handler(event: FooEventPayload) -> None:
     await send_bar(new_event)
 
 
-@handler.event("BarEvent")
-async def bar_handler(event: BarEventPayload) -> None:
-    print('Received BarEvent', event)
-
-
 if __name__ == "__main__":
     broker_config: BrokerConfig = {
         "bootstrap_servers": "kafka:9092"
@@ -110,12 +107,12 @@ if __name__ == "__main__":
 
     consumer_config: ConsumerConfig = {
         "group_id": "test",
-        "topics": ["topic"],
+        "topics": ["src-topic"],
         **broker_config
     }
 
     producer_config: ProducerConfig = {
-        "topic": "topic",
+        "topic": "dest-topic",
         **broker_config
     }
 
@@ -124,6 +121,12 @@ if __name__ == "__main__":
     app.add_producer(producer_config, sender)
     app.run()
 ```
+
+### Check API docs update
+Documentation includes both consumed and produced events.
+
+![Screenshot](docs/img/docs_2.png)
+
 
 More details can be found in the [documentation](https://evkafka.readthedocs.io/)
 
