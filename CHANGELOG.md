@@ -1,3 +1,8 @@
+### 0.7.0 (2023-12-24)
+
+**Added**
+- Add produced events to AsyncApi schema
+
 ### 0.6.1 (2023-12-06)
 
 **Fixed**

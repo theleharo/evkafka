@@ -159,7 +159,6 @@ In the example above, the `send_event` function is defined
 as an outbound endpoint for the event type 'Event'. 
 It can be called by users to send events using the provided payload.
 
-
 ### Payload types
 
 The event object expected by EVKafka can have one
@@ -198,3 +197,19 @@ an `app.run()` call, outbound endpoints are ready to send events.
 
 For more information about producer configuration, 
 please refer to the [Producers](producers.md) documentation. 
+
+
+### Outbound topic configuration
+
+A default topic to produce events can be supplied with the `config` dict
+in the `app.add_producer` call. You can also specify the topic for a particular
+outbound endpoint:
+
+```python
+@sender.event('Event', topic='other-topic')
+async def send_event(e: EventPayload) -> None:
+    pass
+```
+
+The topic must be defined either in the common producer configuration or
+for the outbound event.

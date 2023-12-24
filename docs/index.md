@@ -30,33 +30,36 @@ Focus on event handling while the framework takes care of the rest.
 A simplest possible consumer app may look like this:
 
 ```python
-from evkafka import EVKafkaApp
-from evkafka.config import ConsumerConfig
+from evkafka import EVKafkaApp, Handler
+from evkafka.config import ConsumerConfig, BrokerConfig
 from pydantic import BaseModel
+
+
+handler = Handler()
 
 
 class FooEventPayload(BaseModel):
     user_name: str
 
 
-config: ConsumerConfig = {
-    "bootstrap_servers": "kafka:9092",
-    "group_id": "test",
-    "topics": ["topic"],
-}
-
-app = EVKafkaApp(
-    config=config,
-    expose_asyncapi=True,
-)
-
-
-@app.event("FooEvent")
+@handler.event("FooEvent")
 async def foo_handler(event: FooEventPayload) -> None:
-    print(event)
+    print('Received FooEvent', event)
 
 
 if __name__ == "__main__":
+    broker_config: BrokerConfig = {
+        "bootstrap_servers": "kafka:9092"
+    }
+
+    consumer_config: ConsumerConfig = {
+        "group_id": "test",
+        "topics": ["topic"],
+        **broker_config
+    }
+
+    app = EVKafkaApp(expose_asyncapi=True)
+    app.add_consumer(consumer_config, handler)
     app.run()
 ```
 
@@ -87,14 +90,14 @@ class BarEventPayload(BaseModel):
     message: str
 
 
-@app.event('BarEvent')
+@handler.event('BarEvent')
 async def bar_handler(event: BarEventPayload) -> None:
     print(event)
 ```
 
 ### Check documentation update
 
-Restart your app. You should see an updated docs:
+Restart your app. You should see updated docs:
 ![Screenshot](img/asyncapi_2.png)
 
 
@@ -160,4 +163,7 @@ if __name__ == "__main__":
     app.run()
 ```
 
-> **Feature Note.** Documentation for produced events will be included in next releases
+### Check documentation for produced events
+
+Restart your app. Now docs includes produced events as well:
+![Screenshot](img/asyncapi_3.png)
